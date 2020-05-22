@@ -1,0 +1,8 @@
+.git
+.git/
+.git/*
+.git/**
+*.yml
+*.md
+*.csv
+*.tar.gz
