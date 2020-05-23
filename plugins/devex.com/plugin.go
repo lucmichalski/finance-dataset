@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	adm "github.com/lucmichalski/finance-contrib/devex.com/admin"

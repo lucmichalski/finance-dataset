@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/qor/media/media_library"
+	// "github.com/qor/media/media_library"
 	"github.com/qor/validations"
 )
 
 type Page struct {
 	gorm.Model
-	URL                string `gorm:"index:url"`
+	Link               string `gorm:"index:link"`
 	Title              string
 	Content            string
 	Category           string

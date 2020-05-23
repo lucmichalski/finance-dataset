@@ -1,10 +1,7 @@
 package crawler
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"sort"
 	"strings"
 
 	"github.com/corpix/uarand"
@@ -12,12 +9,12 @@ import (
 	"github.com/gocolly/colly/v2/proxy"
 	"github.com/gocolly/colly/v2/queue"
 	"github.com/k0kubun/pp"
-	// "github.com/qor/media/media_library"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 	"github.com/lucmichalski/finance-dataset/pkg/sitemap"
+	"github.com/lucmichalski/finance-dataset/pkg/utils"
 )
 
 func Extract(cfg *config.Config) error {
@@ -70,8 +67,8 @@ func Extract(cfg *config.Config) error {
 		}
 
 		page := &models.Page{}
-		page.URL = e.Request.Ctx.Get("url")
-		page.Source = "devex.com"
+		page.Link = e.Request.Ctx.Get("url")
+		page.Source = "barrons.com"
 		page.Class = "news"
 
 		// e.ForEach(`script[type="application/ld+json"]`, func(_ int, el *colly.HTMLElement) {
@@ -88,7 +85,7 @@ func Extract(cfg *config.Config) error {
 		// 	carDataImage = append(carDataImage, carImage)
 		// })
 
-		if page.Link == "" && page.Content == "" && page.PublishedAt == "" {
+		if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
 			return
 		}
 
@@ -96,12 +93,10 @@ func Extract(cfg *config.Config) error {
 
 		if !cfg.DryMode {
 			if err := cfg.DB.Create(&page).Error; err != nil {
-				log.Fatalf("create vehicle (%v) failure, got err %v", vehicle, err)
+				log.Fatalf("create page (%v) failure, got err %v", page, err)
 				return
 			}
 		}
-
-		log.Infoln("Add manufacturer: ", make, ", Model:", model, ", Year:", year)
 
 	})
 
@@ -122,7 +117,7 @@ func Extract(cfg *config.Config) error {
 	// Start scraping on https://www.classicdriver.com
 	if cfg.IsSitemapIndex {
 		log.Infoln("extractSitemapIndex...")
-		sitemaps, err := prefetch.ExtractSitemapIndex(cfg.URLs[0])
+		sitemaps, err := sitemap.ExtractSitemapIndex(cfg.URLs[0])
 		if err != nil {
 			log.Fatal("ExtractSitemapIndex:", err)
 			return err
@@ -130,13 +125,13 @@ func Extract(cfg *config.Config) error {
 
 		// var links []string
 		utils.Shuffle(sitemaps)
-		for _, sitemap := range sitemaps {
-			log.Infoln("processing ", sitemap)
-			if strings.HasSuffix(sitemap, ".gz") {
+		for _, s := range sitemaps {
+			log.Infoln("processing ", s)
+			if strings.HasSuffix(s, ".gz") {
 				log.Infoln("extract sitemap gz compressed...")
-				locs, err := prefetch.ExtractSitemapGZ(sitemap)
+				locs, err := sitemap.ExtractSitemapGZ(s)
 				if err != nil {
-					log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", sitemap)
+					log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", s)
 					return err
 				}
 				utils.Shuffle(locs)
@@ -144,7 +139,7 @@ func Extract(cfg *config.Config) error {
 					q.AddURL(loc)
 				}
 			} else {
-				locs, err := prefetch.ExtractSitemap(sitemap)
+				locs, err := sitemap.ExtractSitemap(s)
 				if err != nil {
 					log.Fatal("ExtractSitemap", err)
 					return err

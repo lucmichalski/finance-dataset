@@ -1,8 +1,170 @@
 ---
-version: "3.7"
+version: '3.7'
 services:
 
-   crawler:
+  mysql:
+    image: mysql:5.7
+    container_name: ${NAMESPACE}-db
+    ports:
+    - 3311:3306
+    volumes:
+    - db-data:/var/lib/mysql
+    networks:
+    - internal
+    environment:
+      FD_MYSQL_DATABASE: ${FD_MYSQL_DATABASE}
+      FD_MYSQL_PASSWORD: ${FD_MYSQL_PASSWORD}
+      FD_MYSQL_ROOT_PASSWORD: ${FD_MYSQL_ROOT_PASSWORD}
+      FD_MYSQL_USER: ${FD_MYSQL_USER}
+    restart: unless-stopped
 
+  backup:
+    image: zeenlym/mariadb-backup
+    container_name: ${NAMESPACE}-backup
+    depends_on:
+    - mysql
+    restart: unless-stopped
+    networks:
+    - internal
+    environment:
+    - TIMEZONE=${TIME_ZONE}
+    - SCHEDULE=0 0 0 3 *
+    - BACKUP_METHOD=mysqldump
+    - MYSQL_HOST=${FD_MYSQL_HOST}
+    - MYSQL_DATABASE=${FD_MYSQL_DATABASE}
+    - MYSQL_USER=${FD_MYSQL_USER}
+    - MYSQL_PASSWORD=${FD_MYSQL_PASSWORD}
+    volumes:
+    - ./shared/backup:/backup
+    restart: unless-stopped
 
-   mysql:
+  selenium:
+    image: selenium/standalone-chrome:latest
+    container_name: ${NAMESPACE}-selenium
+    ports:
+    - 4444:4444
+    volumes:
+    - /dev/shm:/dev/shm
+    networks:
+    - internal
+    - web
+    restart: unless-stopped
+
+  tor-haproxy:
+    restart: always
+    container_name: ${NAMESPACE}-tor-haproxy
+    image: lucmichalski/tor-haproxy:latest       
+    build:
+      context: .docker/tor-haproxy
+      dockerfile: Dockerfile
+    environment:
+    - privoxy=1
+    - privoxy_port=8119
+    - tors=25
+    networks:
+    - internal
+    - web
+    ports:
+    - 5566:5566
+    - 2090:2090
+    - 8119:8119
+
+  protonvpn:
+    image: protonvpn-docker
+    container_name: ${NAMESPACE}-protonvpn
+    build:
+      context: .docker/protonvpn
+      dockerfile: Dockerfile
+      args:
+      - PROTONVPN_USER=${PROTONVPN_USER}
+      - PROTONVPN_PASSWORD=${PROTONVPN_PASSWORD} 
+    stdin_open: true
+    tty: true
+    environment:
+    - SOCKD_WORKERS=10
+    # volumes:
+    # - ./shared/logs/protovpn/pvpn-cli.log:/root/.pvpn-cli/pvpn-cli.log
+    # - ./shared/logs/protovpn/ovpn.log:/root/.pvpn-cli/ovpn.log
+    ports:
+    - "1080:1080"
+    cap_add:
+    - NET_ADMIN
+    devices:
+    - "/dev/net/tun:/dev/net/tun"
+    command: >
+      sh -c "protonvpn connect --cc US &&
+      sockd -N $$SOCKD_WORKERS"
+    networks:
+    - internal
+    - web
+    #volumes:
+    #- "./sockd.conf:/etc/sockd.conf"
+
+  imaginary:
+    image: h2non/imaginary:latest
+    container_name: ${NAMESPACE}-imaginary
+    volumes:
+    - imaginary-data:/mnt/data
+    environment:
+       PORT: 9002
+    ports:
+    - "9002:9002"
+    networks:
+    - internal
+    command: -cors -gzip -enable-url-source -mount /mnt/data
+    restart: unless-stopped
+
+  dozzle:
+    container_name: ${NAMESPACE}-dozzle
+    image: amir20/dozzle:latest
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+    - 9999:9999
+    command: ["--addr", "0.0.0.0:9999"]
+    networks:
+    - web # for tests purpose
+    restart: unless-stopped  
+
+  telegraf:
+    image: telegraf:1.14-alpine
+    volumes:
+    - ./.config/telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    depends_on:
+    - influxdb
+    links:
+    - influxdb
+    ports:
+    - '8125:8125/udp'
+
+  influxdb:
+    image: influxdb:1.8-alpine
+    ports:
+    - '8086:8086'
+    volumes:
+    - influxdb_data:/var/lib/influxdb
+
+  grafana:
+    image: grafana/grafana:6.7.3
+    depends_on:
+    - influxdb
+    links:
+    - influxdb
+    ports:
+    - '3000:3000'
+    volumes:
+    - grafana_data:/var/lib/grafana
+    - ./.config/grafana/provisioning/:/etc/grafana/provisioning/
+    - ./.config/grafana/dashboards/:/var/lib/grafana/dashboards/
+
+networks:
+  internal:
+  web:
+    external: true
+
+volumes:
+  grafana_data:
+  influxdb_data:
+  db-data:
+  cache-data:
+  imaginary-data:

@@ -14,7 +14,7 @@ func ConfigureAdmin(Admin *admin.Admin) {
 	Admin.AddMenu(&admin.Menu{Name: menuName, Priority: 1})
 
 	// Add Setting page
-	Admin.AddResource(&models.SettingAuto1{}, &admin.Config{
+	Admin.AddResource(&models.SettingBarrons{}, &admin.Config{
 		Name:      menuName + " Settings",
 		Menu:      []string{menuName},
 		Singleton: true,
