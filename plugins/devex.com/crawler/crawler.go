@@ -3,7 +3,9 @@ package crawler
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/araddon/dateparse"
 	"github.com/corpix/uarand"
 	"github.com/gocolly/colly/v2"
 	"github.com/gocolly/colly/v2/proxy"
@@ -21,6 +23,7 @@ func Extract(cfg *config.Config) error {
 
 	// Instantiate default collector
 	c := colly.NewCollector(
+		ccolly.AllowURLRevisit(),
 		colly.UserAgent(uarand.GetRandom()),
 		colly.CacheDir(cfg.CacheDir),
 	)
@@ -57,10 +60,15 @@ func Extract(cfg *config.Config) error {
 
 	c.OnHTML(`html`, func(e *colly.HTMLElement) {
 
+		// check if news page
+		if !strings.Contains(e.Request.Ctx.Get("url"), "/news/") {
+			return
+		}
+
 		// check in the databse if exists
 		var pageExists models.Page
 		if !cfg.DryMode {
-			if !cfg.DB.Where("url = ?", e.Request.Ctx.Get("url")).First(&pageExists).RecordNotFound() {
+			if !cfg.DB.Where("link = ?", e.Request.Ctx.Get("url")).First(&pageExists).RecordNotFound() {
 				fmt.Printf("skipping url=%s as already exists\n", e.Request.Ctx.Get("url"))
 				return
 			}
@@ -68,11 +76,58 @@ func Extract(cfg *config.Config) error {
 
 		page := &models.Page{}
 		page.Link = e.Request.Ctx.Get("url")
-		page.Source = "barrons.com"
+		page.Source = "devex.com"
 		page.Class = "news"
 
-		// e.ForEach(`script[type="application/ld+json"]`, func(_ int, el *colly.HTMLElement) {
-		// })
+		// categories
+		var categories []string
+		e.ForEach(`li.category a`, func(_ int, el *colly.HTMLElement) {
+			if el.Text != "" {
+				categories = append(categories, el.Text)
+			}
+		})
+		page.Categories = strings.Join(categories, ",")
+
+		// title
+		page.Title = e.ChildText("h1.article-headline")
+
+		// author
+		page.Authors = e.ChildText("a[rel=author]")
+
+		// date
+		publishedAtStr := e.ChildText("em.article-byline")
+		publishedAtParts := strings.Split(publishedAtStr, "//")
+		var publishedAt string
+		if len(publishedAtParts) > 1 {
+			publishedAt = strings.TrimSpace(publishedAtParts[1])
+			if cfg.IsDebug {
+				fmt.Println("publishedAt:", publishedAt)
+			}
+			// convert date to time
+
+			publishedAtTime, err := dateparse.ParseAny(publishedAt)
+			if err != nil {
+				log.Fatal(err)
+			}
+			page.PublishedAt = publishedAtTime
+		} else {
+			page.PublishedAt = time.Now()
+		}
+
+		var tags []string
+		e.ForEach(`div.tags a`, func(_ int, el *colly.HTMLElement) {
+			if el.Attr("data-track-label") != "" {
+				tags = append(tags, el.Attr("data-track-label"))
+			}
+		})
+		page.Tags = strings.Join(tags, ",")
+
+		// article content
+		page.Content = e.ChildText("div[id=article-content]")
+
+		if cfg.IsDebug {
+			pp.Println("page:", page)
+		}
 
 		// page.PageProperties = append(page.PageProperties, models.PageProperty{Name: "InteriorColor", Value: val})
 
@@ -89,7 +144,9 @@ func Extract(cfg *config.Config) error {
 			return
 		}
 
-		pp.Println(page)
+		if cfg.IsDebug {
+			pp.Println("page:", page)
+		}
 
 		if !cfg.DryMode {
 			if err := cfg.DB.Create(&page).Error; err != nil {
@@ -136,7 +193,9 @@ func Extract(cfg *config.Config) error {
 					}
 					// utils.Shuffle(locs)
 					for _, loc := range locs {
-						q.AddURL(loc)
+						if strings.Contains(loc, "/news/") {
+							q.AddURL(loc)
+						}
 					}
 				} else {
 					locs, err := sitemap.ExtractSitemap(s)
@@ -146,7 +205,9 @@ func Extract(cfg *config.Config) error {
 					}
 					// utils.Shuffle(locs)
 					for _, loc := range locs {
-						q.AddURL(loc)
+						if strings.Contains(loc, "/news/") {
+							q.AddURL(loc)
+						}
 					}
 				}
 			}

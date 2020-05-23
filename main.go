@@ -1,11 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"html/template"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,19 +13,16 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/k0kubun/pp"
-	"github.com/nozzle/throttler"
 	"github.com/oschwald/geoip2-golang"
 	"github.com/qor/admin"
 	"github.com/qor/assetfs"
 	"github.com/qor/media"
 	"github.com/qor/media/media_library"
-	"github.com/qor/qor"
 	"github.com/qor/qor/utils"
 	"github.com/qor/validations"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	realip "github.com/thanhhh/gin-gonic-realip"
-	ccsv "github.com/tsak/concurrent-csv-writer"
 
 	padmin "github.com/lucmichalski/finance-dataset/pkg/admin"
 	"github.com/lucmichalski/finance-dataset/pkg/middlewares"
@@ -80,7 +73,7 @@ func main() {
 	pflag.StringVarP(&pluginDir, "plugin-dir", "", "./release", "plugins directory.")
 	pflag.StringVarP(&geoIpFile, "geoip-db", "", "./shared/geoip2/GeoLite2-City.mmdb", "geoip filepath.")
 	pflag.StringSliceVarP(&usePlugins, "plugins", "", defaultPlugins, "plugins to load.")
-	pflag.IntVarP(&parallelJobs, "parallel-jobs", "j", 35, "parallel jobs.")
+	pflag.IntVarP(&parallelJobs, "parallel-jobs", "j", 12, "parallel jobs.")
 	pflag.BoolVarP(&isCrawl, "crawl", "c", false, "launch the crawler.")
 	pflag.BoolVarP(&isDataset, "dataset", "d", false, "launch the crawler.")
 	pflag.BoolVarP(&isClean, "clean", "", false, "auto-clean temporary files.")
@@ -196,7 +189,7 @@ func main() {
 			}
 			c.IsDebug = true
 			c.IsClean = isClean
-			c.ConsumerThreads = 6
+			c.ConsumerThreads = parallelJobs
 			pp.Println(c)
 			c.DB = DB
 			err := cmd.Crawl(c)
@@ -230,19 +223,19 @@ func main() {
 		// Add media library
 		Admin.AddResource(&media_library.MediaLibrary{}, &admin.Config{Menu: []string{"Crawl Management"}, Priority: -1})
 
-		pages := Admin.AddResource(&models.Vehicle{}, &admin.Config{Menu: []string{"Crawl Management"}})
-		pages.IndexAttrs("ID", "Domain", "Link", "Title")
+		pages := Admin.AddResource(&models.Page{}, &admin.Config{Menu: []string{"Crawl Management"}})
+		pages.IndexAttrs("ID", "Authors", "Link", "Title")
 
-		cars.Filter(&admin.Filter{
-			Name: "Domain",
+		pages.Filter(&admin.Filter{
+			Name: "Authors",
 			Type: "string",
 		})
 
-		cars.Filter(&admin.Filter{
+		pages.Filter(&admin.Filter{
 			Name: "PublishedAt",
 		})
 
-		cars.Filter(&admin.Filter{
+		pages.Filter(&admin.Filter{
 			Name: "CreatedAt",
 		})
 

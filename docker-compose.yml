@@ -12,10 +12,10 @@ services:
     networks:
     - internal
     environment:
-      FD_MYSQL_DATABASE: ${FD_MYSQL_DATABASE}
-      FD_MYSQL_PASSWORD: ${FD_MYSQL_PASSWORD}
-      FD_MYSQL_ROOT_PASSWORD: ${FD_MYSQL_ROOT_PASSWORD}
-      FD_MYSQL_USER: ${FD_MYSQL_USER}
+      MYSQL_DATABASE: ${FD_MYSQL_DATABASE}
+      MYSQL_PASSWORD: ${FD_MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${FD_MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${FD_MYSQL_USER}
     restart: unless-stopped
 
   backup:

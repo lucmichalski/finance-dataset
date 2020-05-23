@@ -4,11 +4,12 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/abadojack/whatlanggo"
 	"github.com/jinzhu/gorm"
-	// "github.com/qor/media/media_library"
 	"github.com/qor/validations"
 )
 
@@ -16,8 +17,8 @@ type Page struct {
 	gorm.Model
 	Link               string `gorm:"index:link"`
 	Title              string
-	Content            string
-	Category           string
+	Content            string `gorm:"type:longtext; CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci" sql:"type:longtext"`
+	Categories         string
 	Tags               string
 	Authors            string
 	Language           string `gorm:"index:language"`
@@ -36,6 +37,12 @@ func (p Page) Validate(db *gorm.DB) {
 
 func (p *Page) BeforeCreate() (err error) {
 	// add to whatlango
+	if p.Content != "" {
+		info := whatlanggo.Detect(p.Content)
+		p.Language = info.Lang.String()
+		p.LanguageConfidence = info.Confidence
+		fmt.Println("======> Language:", p.Language, " Script:", whatlanggo.Scripts[info.Script], " Confidence: ", p.LanguageConfidence)
+	}
 	return
 }
 

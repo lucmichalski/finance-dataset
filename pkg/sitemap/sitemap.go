@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	torProxyAddress   = "socks5://51.91.21.67:5566"
-	torPrivoxyAddress = "socks5://51.91.21.67:8119"
+	torProxyAddress   = "socks5://51.210.37.251:5566"
+	torPrivoxyAddress = "socks5://51.210.37.251:8119"
 )
 
 func Sitemap(cfg *config.Config) error {
@@ -137,7 +137,7 @@ func Sitemap(cfg *config.Config) error {
 
 func ExtractSitemapIndex(rawUrl string) ([]string, error) {
 	client := &http.Client{
-		Timeout: 40 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 
 	tbProxyURL, err := url.Parse(torProxyAddress)
@@ -176,30 +176,45 @@ func ExtractSitemapIndex(rawUrl string) ([]string, error) {
 		fmt.Println("Body:", string(body))
 		os.Exit(1)
 	*/
-
+	var reader io.ReadCloser
 	doc := etree.NewDocument()
-	if _, err := doc.ReadFrom(response.Body); err != nil {
-		return nil, err
+	if strings.HasSuffix(rawUrl, ".gz") {
+		reader, err = gzip.NewReader(response.Body)
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+		defer reader.Close()
+		if _, err := doc.ReadFrom(reader); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := doc.ReadFrom(response.Body); err != nil {
+			return nil, err
+		}
 	}
+
 	var urls []string
 	index := doc.SelectElement("sitemapindex")
-	sitemaps := index.SelectElements("sitemap")
-	for _, sitemap := range sitemaps {
-		loc := sitemap.SelectElement("loc")
-		l := loc.Text()
-		l = strings.TrimLeftFunc(l, func(c rune) bool {
-			return c == '\r' || c == '\n' || c == '\t'
-		})
-		l = strings.TrimSpace(l)
-		log.Infoln("loc:", l)
-		urls = append(urls, l)
+	if index != nil {
+		sitemaps := index.SelectElements("sitemap")
+		for _, sitemap := range sitemaps {
+			loc := sitemap.SelectElement("loc")
+			l := loc.Text()
+			l = strings.TrimLeftFunc(l, func(c rune) bool {
+				return c == '\r' || c == '\n' || c == '\t'
+			})
+			l = strings.TrimSpace(l)
+			log.Infoln("loc:", l)
+			urls = append(urls, l)
+		}
 	}
 	return urls, nil
 }
 
 func ExtractSitemapGZ(rawUrl string) ([]string, error) {
 	client := &http.Client{
-		Timeout: 40 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 
 	tbProxyURL, err := url.Parse(torProxyAddress)
@@ -258,7 +273,7 @@ func ExtractSitemapGZ(rawUrl string) ([]string, error) {
 func ExtractSitemap(rawUrl string) ([]string, error) {
 
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 
 	tbProxyURL, err := url.Parse(torProxyAddress)
