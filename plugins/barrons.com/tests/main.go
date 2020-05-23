@@ -13,7 +13,7 @@ import (
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 
-	"github.com/lucmichalski/finance-contrib/bloomberg.com/crawler"
+	"github.com/lucmichalski/finance-contrib/barrons.com/crawler"
 )
 
 func main() {
@@ -32,9 +32,9 @@ func main() {
 	DB.AutoMigrate(&models.Page{})
 
 	cfg := &config.Config{
-		AllowedDomains: []string{"www.bloomberg.com", "bloomberg.com"},
+		AllowedDomains: []string{"www.barrons.com", "barrons.com"},
 		URLs: []string{
-			"https://www.bloomberg.com/news/articles/2020-03-11/augmented-reality-startup-magic-leap-is-said-to-explore-a-sale",
+			"https://www.barrons.com/articles/retail-giants-will-keep-gaining-ground-in-a-post-coronavirus-world-51590193284?mod=hp_LEAD_1",
 		},
 		DB:              DB,
 		CacheDir:        "../../../shared/data",

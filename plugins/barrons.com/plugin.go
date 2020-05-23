@@ -5,64 +5,59 @@ import (
 	"errors"
 	"fmt"
 
-	adm "github.com/lucmichalski/cars-contrib/cars.com/admin"
-	"github.com/lucmichalski/cars-contrib/cars.com/crawler"
-	"github.com/lucmichalski/cars-contrib/cars.com/models"
+	adm "github.com/lucmichalski/finance-contrib/barrons.com/admin"
+	"github.com/lucmichalski/finance-contrib/barrons.com/crawler"
+	"github.com/lucmichalski/finance-contrib/barrons.com/models"
 	"github.com/qor/admin"
 
-	"github.com/lucmichalski/cars-dataset/pkg/config"
-	"github.com/lucmichalski/cars-dataset/pkg/plugins"
+	"github.com/lucmichalski/finance-dataset/pkg/config"
+	"github.com/lucmichalski/finance-dataset/pkg/plugins"
 )
 
 var Tables = []interface{}{
-	&models.SettingCarsCom{},
+	&models.SettingBarrons{},
 }
 
 var Resources = []interface{}{
-	&models.SettingCarsCom{},
+	&models.SettingBarrons{},
 }
 
-type carsPlugin string
+type barronsPlugin string
 
-func (o carsPlugin) Name() string      { return string(o) }
-func (o carsPlugin) Section() string   { return `1001pneus.fr` }
-func (o carsPlugin) Usage() string     { return `hello` }
-func (o carsPlugin) ShortDesc() string { return `1001pneus.fr crawler"` }
-func (o carsPlugin) LongDesc() string  { return o.ShortDesc() }
+func (o barronsPlugin) Name() string      { return string(o) }
+func (o barronsPlugin) Section() string   { return `barrons.com` }
+func (o barronsPlugin) Usage() string     { return `` }
+func (o barronsPlugin) ShortDesc() string { return `barrons.com crawler"` }
+func (o barronsPlugin) LongDesc() string  { return o.ShortDesc() }
 
-func (o carsPlugin) Migrate() []interface{} {
+func (o barronsPlugin) Migrate() []interface{} {
 	return Tables
 }
 
-func (o carsPlugin) Resources(Admin *admin.Admin) {
+func (o barronsPlugin) Resources(Admin *admin.Admin) {
 	adm.ConfigureAdmin(Admin)
 }
 
-func (o carsPlugin) Crawl(cfg *config.Config) error {
+func (o barronsPlugin) Crawl(cfg *config.Config) error {
 	return crawler.Extract(cfg)
 }
 
-func (o carsPlugin) Catalog(cfg *config.Config) error {
-	return errors.New("Not Implemented")
-}
-
-func (o carsPlugin) Config() *config.Config {
+func (o barronsPlugin) Config() *config.Config {
 	cfg := &config.Config{
-		AllowedDomains: []string{"www.cars.com", "cars.com"},
+		AllowedDomains: []string{"www.barrons.com", "barrons.com"},
 		URLs: []string{
-			"https://www.cars.com/secure/sitemap/s_sitemap_index.xml",
+			"https://www.barrons.com/secure/sitemap/s_sitemap_index.xml",
 		},
 		QueueMaxSize:    1000000,
 		ConsumerThreads: 1,
 		IsSitemapIndex:  true,
-		AnalyzerURL:     "http://localhost:9003/crop?url=%s",
 	}
 	return cfg
 }
 
-type carsCommands struct{}
+type barronsCommands struct{}
 
-func (t *carsCommands) Init(ctx context.Context) error {
+func (t *barronsCommands) Init(ctx context.Context) error {
 	// to set your splash, modify the text in the println statement below, multiline is supported
 	fmt.Println(`
 ---------------------------------------------------------------------------------------------------------------
@@ -79,10 +74,10 @@ func (t *carsCommands) Init(ctx context.Context) error {
 	return nil
 }
 
-func (t *carsCommands) Registry() map[string]plugins.Plugin {
+func (t *barronsCommands) Registry() map[string]plugins.Plugin {
 	return map[string]plugins.Plugin{
-		"cars": carsPlugin("cars"), //OP
+		"barrons": barronsPlugin("barrons"), //OP
 	}
 }
 
-var Plugins carsCommands
+var Plugins barronsCommands

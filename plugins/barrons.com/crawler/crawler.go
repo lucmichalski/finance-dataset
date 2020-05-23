@@ -71,7 +71,7 @@ func Extract(cfg *config.Config) error {
 
 		page := &models.Page{}
 		page.URL = e.Request.Ctx.Get("url")
-		page.Source = "devex.com"
+		page.Source = "barrons.com"
 		page.Class = "news"
 
 		// e.ForEach(`script[type="application/ld+json"]`, func(_ int, el *colly.HTMLElement) {

@@ -14,13 +14,17 @@ import (
 
 type Page struct {
 	gorm.Model
-	Domain             string `gorm:"index:domain"`
 	URL                string `gorm:"index:url"`
 	Title              string
 	Content            string
-	Language           string
+	Category           string
+	Tags               string
+	Authors            string
+	Language           string `gorm:"index:language"`
 	LanguageConfidence float64
-	PublishedAt        time.Time
+	PublishedAt        time.Time      `gorm:"index:published_at"`
+	Source             string         `gorm:"index:source"`
+	Class              string         `gorm:"index:class"`
 	PageProperties     PageProperties `sql:"type:text"`
 }
 
@@ -28,6 +32,11 @@ func (p Page) Validate(db *gorm.DB) {
 	if strings.TrimSpace(p.Title) == "" {
 		db.AddError(validations.NewError(p, "Name", "Name can not be empty"))
 	}
+}
+
+func (p *Page) BeforeCreate() (err error) {
+	// add to whatlango
+	return
 }
 
 func (p *Page) AfterCreate() (err error) {
