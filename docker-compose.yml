@@ -128,6 +128,7 @@ services:
 
   telegraf:
     image: telegraf:1.14-alpine
+    container_name: ${NAMESPACE}-telegraph
     volumes:
     - ./.config/telegraf/etc/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     depends_on:
@@ -139,6 +140,7 @@ services:
 
   influxdb:
     image: influxdb:1.8-alpine
+    container_name: ${NAMESPACE}-influxdb
     ports:
     - '8086:8086'
     volumes:
@@ -146,6 +148,7 @@ services:
 
   grafana:
     image: grafana/grafana:6.7.3
+    container_name: ${NAMESPACE}-graphana
     depends_on:
     - influxdb
     links:
