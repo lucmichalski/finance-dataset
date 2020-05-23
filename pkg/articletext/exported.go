@@ -31,6 +31,11 @@ func GetArticleTextFromFile(filepath string) (string, error) {
 }
 
 // extracts useful text from a html page presented by an url
+func GetArticleTextFromGoQuery(doc *goquery.Document) (string, error) {
+        return processArticle(doc, 1)
+}
+
+// extracts useful text from a html page presented by an url
 func GetArticleTextFromUrl(url string) (string, error) {
 	doc, err := goquery.NewDocument(url)
 

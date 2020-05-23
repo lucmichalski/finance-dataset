@@ -5,6 +5,7 @@ replace github.com/lucmichalski/finance-dataset => ../..
 go 1.14
 
 require (
+	github.com/araddon/dateparse v0.0.0-20200409225146-d820a6159ab1
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/beevik/etree v1.1.0 // indirect
 	github.com/corpix/uarand v0.1.1

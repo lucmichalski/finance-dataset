@@ -3,7 +3,9 @@ package crawler
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/araddon/dateparse"
 	"github.com/corpix/uarand"
 	"github.com/gocolly/colly/v2"
 	"github.com/gocolly/colly/v2/proxy"
@@ -11,16 +13,17 @@ import (
 	"github.com/k0kubun/pp"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/lucmichalski/finance-dataset/pkg/articletext"
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 	"github.com/lucmichalski/finance-dataset/pkg/sitemap"
-	"github.com/lucmichalski/finance-dataset/pkg/utils"
 )
 
 func Extract(cfg *config.Config) error {
 
 	// Instantiate default collector
 	c := colly.NewCollector(
+		colly.AllowURLRevisit(),
 		colly.UserAgent(uarand.GetRandom()),
 		colly.CacheDir(cfg.CacheDir),
 	)
@@ -31,6 +34,8 @@ func Extract(cfg *config.Config) error {
 		log.Fatal(err)
 	}
 	c.SetProxyFunc(rp)
+
+	c.DisableCookies()
 
 	// create a request queue with 1 consumer thread until we solve the multi-threadin of the darknet model
 	q, _ := queue.New(
@@ -57,10 +62,15 @@ func Extract(cfg *config.Config) error {
 
 	c.OnHTML(`html`, func(e *colly.HTMLElement) {
 
+		// check if news page
+		if !strings.Contains(e.Request.Ctx.Get("url"), "/articles/") {
+			return
+		}
+
 		// check in the databse if exists
 		var pageExists models.Page
 		if !cfg.DryMode {
-			if !cfg.DB.Where("url = ?", e.Request.Ctx.Get("url")).First(&pageExists).RecordNotFound() {
+			if !cfg.DB.Where("link = ?", e.Request.Ctx.Get("url")).First(&pageExists).RecordNotFound() {
 				fmt.Printf("skipping url=%s as already exists\n", e.Request.Ctx.Get("url"))
 				return
 			}
@@ -71,25 +81,51 @@ func Extract(cfg *config.Config) error {
 		page.Source = "barrons.com"
 		page.Class = "news"
 
+		var categories []string
+		e.ForEach(`ul[itemtype="http://schema.org/BreadcrumbList"] a`, func(_ int, el *colly.HTMLElement) {
+			if el.Text != "" {
+				categories = append(categories, strings.TrimSpace(el.Text))
+			}
+		})
+		page.Categories = strings.Join(categories, ",")
+		page.Title = strings.TrimSpace(e.ChildText(`h1[itemprop="headline"]`))
+		page.Authors = strings.TrimSpace(e.ChildText(`div.author span.name`))
+
+		publishedAtStr := e.ChildText("time.timestamp")
+		publishedAtStr = strings.Replace(publishedAtStr, "Updated ", "", -1)
+		publishedAtStr = strings.Replace(publishedAtStr, "Original ", "", -1)
+		publishedAtStr = strings.Replace(publishedAtStr, " ET", "", -1)
+		publishedAtParts := strings.Split(publishedAtStr, "/")
+		var publishedAt string
+		if len(publishedAtParts) > 1 {
+			publishedAt = strings.TrimSpace(publishedAtParts[0])
+			if cfg.IsDebug {
+				fmt.Println("publishedAt:", publishedAt)
+			}
+			// convert date to time
+			publishedAtTime, err := dateparse.ParseAny(publishedAt)
+			if err != nil {
+				log.Fatal(err)
+			}
+			page.PublishedAt = publishedAtTime
+		} else {
+			page.PublishedAt = time.Now()
+		}
+
+		// articletext.
+		page.Content = strings.TrimSpace(e.ChildText(`div[itemprop="articleBody"]`))
+
 		// e.ForEach(`script[type="application/ld+json"]`, func(_ int, el *colly.HTMLElement) {
 		// })
 
 		// page.PageProperties = append(page.PageProperties, models.PageProperty{Name: "InteriorColor", Value: val})
-
-		// var carDataImage []string
-		// e.ForEach(`div.gallery-controls__thumbnail-image`, func(_ int, el *colly.HTMLElement) {
-		// 	carImage := el.Attr("data-image")
-		// 	if cfg.IsDebug {
-		// 		fmt.Println("carImage:", carImage)
-		// 	}
-		// 	carDataImage = append(carDataImage, carImage)
-		// })
+		if cfg.IsDebug {
+			pp.Println(page)
+		}
 
 		if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
 			return
 		}
-
-		pp.Println(page)
 
 		if !cfg.DryMode {
 			if err := cfg.DB.Create(&page).Error; err != nil {
@@ -114,39 +150,43 @@ func Extract(cfg *config.Config) error {
 		r.Ctx.Put("url", r.URL.String())
 	})
 
-	// Start scraping on https://www.classicdriver.com
 	if cfg.IsSitemapIndex {
 		log.Infoln("extractSitemapIndex...")
-		sitemaps, err := sitemap.ExtractSitemapIndex(cfg.URLs[0])
-		if err != nil {
-			log.Fatal("ExtractSitemapIndex:", err)
-			return err
-		}
-
-		// var links []string
-		utils.Shuffle(sitemaps)
-		for _, s := range sitemaps {
-			log.Infoln("processing ", s)
-			if strings.HasSuffix(s, ".gz") {
-				log.Infoln("extract sitemap gz compressed...")
-				locs, err := sitemap.ExtractSitemapGZ(s)
-				if err != nil {
-					log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", s)
-					return err
-				}
-				utils.Shuffle(locs)
-				for _, loc := range locs {
-					q.AddURL(loc)
-				}
-			} else {
-				locs, err := sitemap.ExtractSitemap(s)
-				if err != nil {
-					log.Fatal("ExtractSitemap", err)
-					return err
-				}
-				utils.Shuffle(locs)
-				for _, loc := range locs {
-					q.AddURL(loc)
+		for _, i := range cfg.URLs {
+			sitemaps, err := sitemap.ExtractSitemapIndex(i)
+			if err != nil {
+				log.Fatal("ExtractSitemapIndex:", err)
+				return err
+			}
+			// shall we shuffle ?
+			// utils.Shuffle(sitemaps)
+			for _, s := range sitemaps {
+				log.Infoln("processing ", s)
+				if strings.HasSuffix(s, ".gz") {
+					log.Infoln("extract sitemap gz compressed...")
+					locs, err := sitemap.ExtractSitemapGZ(s)
+					if err != nil {
+						log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", s)
+						return err
+					}
+					// utils.Shuffle(locs)
+					for _, loc := range locs {
+						if strings.Contains(loc, "/articles/") {
+							q.AddURL(loc)
+						}
+					}
+				} else {
+					locs, err := sitemap.ExtractSitemap(s)
+					if err != nil {
+						log.Fatal("ExtractSitemap", err)
+						return err
+					}
+					// utils.Shuffle(locs)
+					for _, loc := range locs {
+						if strings.Contains(loc, "/articles/") {
+							q.AddURL(loc)
+						}
+					}
 				}
 			}
 		}

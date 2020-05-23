@@ -23,7 +23,7 @@ func Extract(cfg *config.Config) error {
 
 	// Instantiate default collector
 	c := colly.NewCollector(
-		ccolly.AllowURLRevisit(),
+		colly.AllowURLRevisit(),
 		colly.UserAgent(uarand.GetRandom()),
 		colly.CacheDir(cfg.CacheDir),
 	)
@@ -171,7 +171,6 @@ func Extract(cfg *config.Config) error {
 		r.Ctx.Put("url", r.URL.String())
 	})
 
-	// Start scraping on https://www.classicdriver.com
 	if cfg.IsSitemapIndex {
 		log.Infoln("extractSitemapIndex...")
 		for _, i := range cfg.URLs {
