@@ -45,7 +45,14 @@ func (o devexPlugin) Config() *config.Config {
 	cfg := &config.Config{
 		AllowedDomains: []string{"www.devex.com", "devex.com"},
 		URLs: []string{
-			"https://www.devex.com/secure/sitemap/s_sitemap_index.xml",
+			"http://devexsitemap.s3.amazonaws.com/sitemaps/companies-sitemap.xml.gz",
+			"http://devexsitemap.s3.amazonaws.com/sitemaps/procurement-sitemap.xml.gz",
+			"http://devexsitemap.s3.amazonaws.com/sitemaps/news-sitemap.xml.gz",
+			"http://devexsitemap.s3.amazonaws.com/sitemaps/google-news-sitemap.xml.gz",
+			"http://devexsitemap.s3.amazonaws.com/sitemaps/people-sitemap.xml.gz",
+			"http://devexsitemap.s3.amazonaws.com/sitemaps/jobs-sitemap.xml.gz",
+			"http://devexsitemap.s3.amazonaws.com/sitemaps/routes-sitemap.xml.gz",
+			"http://devexsitemap.s3.amazonaws.com/sitemaps/countries-sitemap.xml.gz",
 		},
 		QueueMaxSize:    1000000,
 		ConsumerThreads: 1,

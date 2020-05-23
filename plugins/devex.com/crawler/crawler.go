@@ -14,7 +14,7 @@ import (
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 	"github.com/lucmichalski/finance-dataset/pkg/sitemap"
-	"github.com/lucmichalski/finance-dataset/pkg/utils"
+	// "github.com/lucmichalski/finance-dataset/pkg/utils"
 )
 
 func Extract(cfg *config.Config) error {
@@ -117,36 +117,37 @@ func Extract(cfg *config.Config) error {
 	// Start scraping on https://www.classicdriver.com
 	if cfg.IsSitemapIndex {
 		log.Infoln("extractSitemapIndex...")
-		sitemaps, err := sitemap.ExtractSitemapIndex(cfg.URLs[0])
-		if err != nil {
-			log.Fatal("ExtractSitemapIndex:", err)
-			return err
-		}
-
-		// var links []string
-		utils.Shuffle(sitemaps)
-		for _, s := range sitemaps {
-			log.Infoln("processing ", s)
-			if strings.HasSuffix(s, ".gz") {
-				log.Infoln("extract sitemap gz compressed...")
-				locs, err := sitemap.ExtractSitemapGZ(s)
-				if err != nil {
-					log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", s)
-					return err
-				}
-				utils.Shuffle(locs)
-				for _, loc := range locs {
-					q.AddURL(loc)
-				}
-			} else {
-				locs, err := sitemap.ExtractSitemap(s)
-				if err != nil {
-					log.Fatal("ExtractSitemap", err)
-					return err
-				}
-				utils.Shuffle(locs)
-				for _, loc := range locs {
-					q.AddURL(loc)
+		for _, i := range cfg.URLs {
+			sitemaps, err := sitemap.ExtractSitemapIndex(i)
+			if err != nil {
+				log.Fatal("ExtractSitemapIndex:", err)
+				return err
+			}
+			// shall we shuffle ?
+			// utils.Shuffle(sitemaps)
+			for _, s := range sitemaps {
+				log.Infoln("processing ", s)
+				if strings.HasSuffix(s, ".gz") {
+					log.Infoln("extract sitemap gz compressed...")
+					locs, err := sitemap.ExtractSitemapGZ(s)
+					if err != nil {
+						log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", s)
+						return err
+					}
+					// utils.Shuffle(locs)
+					for _, loc := range locs {
+						q.AddURL(loc)
+					}
+				} else {
+					locs, err := sitemap.ExtractSitemap(s)
+					if err != nil {
+						log.Fatal("ExtractSitemap", err)
+						return err
+					}
+					// utils.Shuffle(locs)
+					for _, loc := range locs {
+						q.AddURL(loc)
+					}
 				}
 			}
 		}

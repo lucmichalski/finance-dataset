@@ -45,11 +45,16 @@ func (o barronsPlugin) Config() *config.Config {
 	cfg := &config.Config{
 		AllowedDomains: []string{"www.barrons.com", "barrons.com"},
 		URLs: []string{
-			"https://www.barrons.com/secure/sitemap/s_sitemap_index.xml",
+			"https://www.barrons.com/bol_news_sitemap.xml",
+			"https://www.barrons.com/sitemaps/web/barrons/en/sitemap_barrons_en_index.xml",
+			"https://www.barrons.com/sitemaps/web/barrons/afp_news/sitemap_barrons_afp_news_index.xml",
+			"https://www.barrons.com/sitemaps/web/barrons-video/en/sitemap_barrons-video_en_index.xml",
+			"https://www.barrons.com/sitemap.xml",
+			"https://www.barrons.com/quote/stock/sitemap.xml",
 		},
 		QueueMaxSize:    1000000,
 		ConsumerThreads: 1,
-		IsSitemapIndex:  true,
+		IsSitemapIndex:  false,
 	}
 	return cfg
 }
