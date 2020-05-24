@@ -9,6 +9,9 @@ This file contains exported functiosn of a package
 Author: Roman Gelembjuk <roman@gelembjuk.com>
 */
 
+// e.DOM.Find("div.row-fluid.description_vehicule").Children().Each(func(idx int, sel *goquery.Selection) {
+//
+
 import (
 	"io"
 	"log"
@@ -32,7 +35,7 @@ func GetArticleTextFromFile(filepath string) (string, error) {
 
 // extracts useful text from a html page presented by an url
 func GetArticleTextFromGoQuery(doc *goquery.Document) (string, error) {
-        return processArticle(doc, 1)
+	return processArticle(doc, 1)
 }
 
 // extracts useful text from a html page presented by an url
