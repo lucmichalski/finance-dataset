@@ -43,12 +43,15 @@ type HTMLElement struct {
 
 // NewHTMLElementFromSelectionNode creates a HTMLElement from a goquery.Selection Node.
 func NewHTMLElementFromSelectionNode(resp *Response, s *goquery.Selection, n *html.Node, idx int) *HTMLElement {
+	htmlContent, _ := goquery.NewDocumentFromNode(n).Html()
 	return &HTMLElement{
 		Name:       n.Data,
 		Request:    resp.Request,
 		Response:   resp,
+		Html:	    htmlContent,
 		Text:       goquery.NewDocumentFromNode(n).Text(),
 		Html:       goquery.NewDocumentFromNode(n).Html(),
+		Node:       n,
 		DOM:        s,
 		Node:       n,
 		Index:      idx,

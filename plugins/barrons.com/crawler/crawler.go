@@ -7,11 +7,15 @@ import (
 
 	"github.com/araddon/dateparse"
 	"github.com/corpix/uarand"
-	"github.com/gocolly/colly/v2"
-	"github.com/gocolly/colly/v2/proxy"
-	"github.com/gocolly/colly/v2/queue"
+	// "github.com/gocolly/colly/v2"
+	// "github.com/gocolly/colly/v2/proxy"
+	// "github.com/gocolly/colly/v2/queue"
 	"github.com/k0kubun/pp"
 	log "github.com/sirupsen/logrus"
+
+        "github.com/lucmichalski/finance-dataset/pkg/colly"
+        "github.com/lucmichalski/finance-dataset/pkg/colly/proxy"
+        "github.com/lucmichalski/finance-dataset/pkg/colly/queue"
 
 	"github.com/lucmichalski/finance-dataset/pkg/articletext"
 	"github.com/lucmichalski/finance-dataset/pkg/config"
@@ -47,25 +51,31 @@ func Extract(cfg *config.Config) error {
 
 	// Create a callback on the XPath query searching for the URLs
 	c.OnXML("//sitemap/loc", func(e *colly.XMLElement) {
-		q.AddURL(e.Text)
+		if strings.Contains(e.Text, "/articles/") || strings.Contains(e.Text, "/news/") {
+			q.AddURL(e.Text)
+		}
 	})
 
 	// Create a callback on the XPath query searching for the URLs
 	c.OnXML("//urlset/url/loc", func(e *colly.XMLElement) {
-		q.AddURL(e.Text)
+                if strings.Contains(e.Text, "/articles/") || strings.Contains(e.Text, "/news/") {
+                        q.AddURL(e.Text)
+                }
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
 		fmt.Println("error:", err, r.Request.URL, r.StatusCode)
-		q.AddURL(r.Request.URL.String())
+		if r.StatusCode == 429 {
+			q.AddURL(r.Request.URL.String())
+		}
 	})
 
 	c.OnHTML(`html`, func(e *colly.HTMLElement) {
 
 		// check if news page
-		if !strings.Contains(e.Request.Ctx.Get("url"), "/articles/") {
-			return
-		}
+		//if !strings.Contains(e.Request.Ctx.Get("url"), "/articles/") || !strings.Contains(e.Request.Ctx.Get("url"), "/news/") {
+		//	return
+		//}
 
 		// check in the databse if exists
 		var pageExists models.Page
@@ -113,17 +123,23 @@ func Extract(cfg *config.Config) error {
 		}
 
 		// articletext.
-		page.Content = strings.TrimSpace(e.ChildText(`div[itemprop="articleBody"]`))
+		// page.Content = strings.TrimSpace(e.ChildText(`div[itemprop="articleBody"]`))
+		content, err := articletext.GetArticleTextFromHtmlNode(e.Node)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		page.Content = content
 
 		// e.ForEach(`script[type="application/ld+json"]`, func(_ int, el *colly.HTMLElement) {
 		// })
 
 		// page.PageProperties = append(page.PageProperties, models.PageProperty{Name: "InteriorColor", Value: val})
-		if cfg.IsDebug {
+		//if cfg.IsDebug {
 			pp.Println(page)
-		}
+		//}
 
-		if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
+		if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" && page.Authors == "" {
 			return
 		}
 
