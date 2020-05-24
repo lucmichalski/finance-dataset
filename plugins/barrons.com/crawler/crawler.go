@@ -6,16 +6,16 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
-	"github.com/corpix/uarand"
+	// "github.com/corpix/uarand"
 	// "github.com/gocolly/colly/v2"
 	// "github.com/gocolly/colly/v2/proxy"
 	// "github.com/gocolly/colly/v2/queue"
 	"github.com/k0kubun/pp"
 	log "github.com/sirupsen/logrus"
 
-        "github.com/lucmichalski/finance-dataset/pkg/colly"
-        "github.com/lucmichalski/finance-dataset/pkg/colly/proxy"
-        "github.com/lucmichalski/finance-dataset/pkg/colly/queue"
+	"github.com/lucmichalski/finance-dataset/pkg/colly"
+	"github.com/lucmichalski/finance-dataset/pkg/colly/proxy"
+	"github.com/lucmichalski/finance-dataset/pkg/colly/queue"
 
 	"github.com/lucmichalski/finance-dataset/pkg/articletext"
 	"github.com/lucmichalski/finance-dataset/pkg/config"
@@ -23,12 +23,23 @@ import (
 	"github.com/lucmichalski/finance-dataset/pkg/sitemap"
 )
 
+const internetExplorerText = `We've detected you are on Internet Explorer. For the best Barrons.com experience, please update to a modern browser.
+CHROME ( https://www.google.com/chrome/browser ) SAFARI ( https://support.apple.com/downloads/#safari ) FIREFOX ( https://www.mozilla.org/firefox )
+
+We've detected you are on Internet Explorer. For the best Barrons.com experience, please update to a modern browser. Google ( https://www.google.com/chrome/ ) Firefox ( https://www.mozilla.org/en-US/firefox/new/ )
+Barron's ( https://www.barrons.com/?mod=BOL_LOGO )
+Subscribe ( https://subscribe.wsj.com/barmobilesite )
+
+This copy is for your personal, non-commercial use only. To order presentation-ready copies for distribution to your colleagues, clients or customers visit http://www.djreprints.com.
+
+`
+
 func Extract(cfg *config.Config) error {
 
 	// Instantiate default collector
 	c := colly.NewCollector(
 		colly.AllowURLRevisit(),
-		colly.UserAgent(uarand.GetRandom()),
+		colly.UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36"),
 		colly.CacheDir(cfg.CacheDir),
 	)
 
@@ -58,9 +69,9 @@ func Extract(cfg *config.Config) error {
 
 	// Create a callback on the XPath query searching for the URLs
 	c.OnXML("//urlset/url/loc", func(e *colly.XMLElement) {
-                if strings.Contains(e.Text, "/articles/") || strings.Contains(e.Text, "/news/") {
-                        q.AddURL(e.Text)
-                }
+		if strings.Contains(e.Text, "/articles/") || strings.Contains(e.Text, "/news/") {
+			q.AddURL(e.Text)
+		}
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
@@ -77,6 +88,14 @@ func Extract(cfg *config.Config) error {
 		//	return
 		//}
 
+		var contentType string
+		if strings.Contains(e.Request.Ctx.Get("url"), "/articles/") {
+			contentType = "articles"
+		}
+		if strings.Contains(e.Request.Ctx.Get("url"), "/news/") {
+			contentType = "afp-news"
+		}
+
 		// check in the databse if exists
 		var pageExists models.Page
 		if !cfg.DryMode {
@@ -89,54 +108,65 @@ func Extract(cfg *config.Config) error {
 		page := &models.Page{}
 		page.Link = e.Request.Ctx.Get("url")
 		page.Source = "barrons.com"
-		page.Class = "news"
+		page.Class = contentType
 
-		var categories []string
-		e.ForEach(`ul[itemtype="http://schema.org/BreadcrumbList"] a`, func(_ int, el *colly.HTMLElement) {
-			if el.Text != "" {
-				categories = append(categories, strings.TrimSpace(el.Text))
-			}
-		})
-		page.Categories = strings.Join(categories, ",")
-		page.Title = strings.TrimSpace(e.ChildText(`h1[itemprop="headline"]`))
-		page.Authors = strings.TrimSpace(e.ChildText(`div.author span.name`))
-
-		publishedAtStr := e.ChildText("time.timestamp")
-		publishedAtStr = strings.Replace(publishedAtStr, "Updated ", "", -1)
-		publishedAtStr = strings.Replace(publishedAtStr, "Original ", "", -1)
-		publishedAtStr = strings.Replace(publishedAtStr, " ET", "", -1)
-		publishedAtParts := strings.Split(publishedAtStr, "/")
-		var publishedAt string
-		if len(publishedAtParts) > 1 {
-			publishedAt = strings.TrimSpace(publishedAtParts[0])
-			if cfg.IsDebug {
-				fmt.Println("publishedAt:", publishedAt)
-			}
-			// convert date to time
-			publishedAtTime, err := dateparse.ParseAny(publishedAt)
+		switch contentType {
+		case "afp-news":
+			page.Title = strings.TrimSpace(e.ChildText(`h1[itemprop="headline"]`))
+			page.Authors = strings.TrimSpace(e.ChildText(`div.byline.article__byline span`))
+			publishedAtStr := strings.TrimSpace(e.ChildText("time.timestamp"))
+			publishedAtTime, err := dateparse.ParseAny(publishedAtStr)
 			if err != nil {
 				log.Fatal(err)
 			}
 			page.PublishedAt = publishedAtTime
-		} else {
-			page.PublishedAt = time.Now()
+			// page.Content = strings.TrimSpace(e.ChildText(`div[itemprop="articleBody"]`))
+			content, err := articletext.GetArticleTextFromHtmlNode(e.Node)
+			if err != nil {
+				log.Fatal(err)
+			}
+			content = strings.Replace(content, internetExplorerText, "", -1)
+			page.Content = content
+
+		case "articles":
+			var categories []string
+			e.ForEach(`ul[itemtype="http://schema.org/BreadcrumbList"] a`, func(_ int, el *colly.HTMLElement) {
+				if el.Text != "" {
+					categories = append(categories, strings.TrimSpace(el.Text))
+				}
+			})
+			page.Categories = strings.Join(categories, ",")
+			page.Title = strings.TrimSpace(e.ChildText(`h1[itemprop="headline"]`))
+			page.Authors = strings.TrimSpace(e.ChildText(`div.author span.name`))
+			publishedAtStr := e.ChildText("time.timestamp")
+			publishedAtStr = strings.Replace(publishedAtStr, "Updated ", "", -1)
+			publishedAtStr = strings.Replace(publishedAtStr, "Original ", "", -1)
+			publishedAtStr = strings.Replace(publishedAtStr, " ET", "", -1)
+			publishedAtParts := strings.Split(publishedAtStr, "/")
+			var publishedAt string
+			if len(publishedAtParts) > 1 {
+				publishedAt = strings.TrimSpace(publishedAtParts[0])
+				if cfg.IsDebug {
+					fmt.Println("publishedAt:", publishedAt)
+				}
+				publishedAtTime, err := dateparse.ParseAny(publishedAt)
+				if err != nil {
+					log.Fatal(err)
+				}
+				page.PublishedAt = publishedAtTime
+			} else {
+				page.PublishedAt = time.Now()
+			}
+			// page.Content = strings.TrimSpace(e.ChildText(`div[itemprop="articleBody"]`))
+			content, err := articletext.GetArticleTextFromHtmlNode(e.Node)
+			if err != nil {
+				log.Fatal(err)
+			}
+			content = strings.Replace(content, internetExplorerText, "", -1)
+			page.Content = content
 		}
 
-		// articletext.
-		// page.Content = strings.TrimSpace(e.ChildText(`div[itemprop="articleBody"]`))
-		content, err := articletext.GetArticleTextFromHtmlNode(e.Node)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		page.Content = content
-
-		// e.ForEach(`script[type="application/ld+json"]`, func(_ int, el *colly.HTMLElement) {
-		// })
-
-		// page.PageProperties = append(page.PageProperties, models.PageProperty{Name: "InteriorColor", Value: val})
-		//if cfg.IsDebug {
-			pp.Println(page)
+		pp.Println(page)
 		//}
 
 		if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" && page.Authors == "" {
@@ -187,7 +217,7 @@ func Extract(cfg *config.Config) error {
 					}
 					// utils.Shuffle(locs)
 					for _, loc := range locs {
-						if strings.Contains(loc, "/articles/") {
+						if strings.Contains(loc, "/articles/") || strings.Contains(loc, "/news/") {
 							q.AddURL(loc)
 						}
 					}
@@ -199,7 +229,7 @@ func Extract(cfg *config.Config) error {
 					}
 					// utils.Shuffle(locs)
 					for _, loc := range locs {
-						if strings.Contains(loc, "/articles/") {
+						if strings.Contains(loc, "/articles/") || strings.Contains(loc, "/news/") {
 							q.AddURL(loc)
 						}
 					}

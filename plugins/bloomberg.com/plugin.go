@@ -62,7 +62,7 @@ func (o bloombergPlugin) Config() *config.Config {
 		},
 		QueueMaxSize:    1000000,
 		ConsumerThreads: 1,
-		IsSitemapIndex:  true,
+		IsSitemapIndex:  false,
 	}
 	return cfg
 }

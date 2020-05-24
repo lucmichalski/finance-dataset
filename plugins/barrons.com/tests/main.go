@@ -35,6 +35,7 @@ func main() {
 		AllowedDomains: []string{"www.barrons.com", "barrons.com"},
 		URLs: []string{
 			"https://www.barrons.com/articles/retail-giants-will-keep-gaining-ground-in-a-post-coronavirus-world-51590193284?mod=hp_LEAD_1",
+			"https://www.barrons.com/news/spain-sees-record-death-toll-with-849-fatalities-in-24-hours-govt-01585648804",
 		},
 		DB:              DB,
 		CacheDir:        "../../../shared/data",
