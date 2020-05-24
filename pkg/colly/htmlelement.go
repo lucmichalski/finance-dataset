@@ -26,7 +26,7 @@ type HTMLElement struct {
 	// Name is the name of the tag
 	Name       string
 	Text       string
-	Html	   string
+	Html       string
 	attributes []html.Attribute
 	// Request is the request object of the element's HTML document
 	Request *Request
@@ -50,8 +50,10 @@ func NewHTMLElementFromSelectionNode(resp *Response, s *goquery.Selection, n *ht
 		Response:   resp,
 		Html:	    htmlContent,
 		Text:       goquery.NewDocumentFromNode(n).Text(),
+		Html:       goquery.NewDocumentFromNode(n).Html(),
 		Node:       n,
 		DOM:        s,
+		Node:       n,
 		Index:      idx,
 		attributes: n.Attr,
 	}

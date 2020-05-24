@@ -9,6 +9,9 @@ This file contains exported functiosn of a package
 Author: Roman Gelembjuk <roman@gelembjuk.com>
 */
 
+// e.DOM.Find("div.row-fluid.description_vehicule").Children().Each(func(idx int, sel *goquery.Selection) {
+//
+
 import (
 	"io"
 	"log"

@@ -7,9 +7,11 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/dgraph-io/badger v1.6.1
 	github.com/disintegration/imaging v1.6.2 // indirect
+	github.com/fatih/color v1.9.0 // indirect
 	github.com/gin-gonic/contrib v0.0.0-20191209060500-d6e26eeaa607
 	github.com/gin-gonic/gin v1.6.3
-        github.com/gocolly/colly/v2 v2.0.1
+	github.com/gocolly/colly/v2 v2.0.1
+	github.com/gocolly/twocaptcha v0.0.0-20180302192906-5ade8d29ba53 // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/sessions v1.2.0 // indirect
 	github.com/gosimple/slug v1.9.0 // indirect
@@ -32,6 +34,7 @@ require (
 	github.com/qor/validations v0.0.0-20171228122639-f364bca61b46
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/tebeka/selenium v0.9.9 // indirect
 	github.com/thanhhh/gin-gonic-realip v0.0.0-20180527053022-1a91c06e8abf // indirect
 	github.com/theplant/cldr v0.0.0-20190423050709-9f76f7ce4ee8 // indirect
 )
