@@ -7,11 +7,15 @@ import (
 
 	"github.com/araddon/dateparse"
 	"github.com/corpix/uarand"
-	"github.com/gocolly/colly/v2"
-	"github.com/gocolly/colly/v2/proxy"
-	"github.com/gocolly/colly/v2/queue"
+	// "github.com/gocolly/colly/v2"
+	// "github.com/gocolly/colly/v2/proxy"
+	// "github.com/gocolly/colly/v2/queue"
 	"github.com/k0kubun/pp"
 	log "github.com/sirupsen/logrus"
+
+        "github.com/lucmichalski/finance-dataset/pkg/colly"
+        "github.com/lucmichalski/finance-dataset/pkg/colly/proxy"
+        "github.com/lucmichalski/finance-dataset/pkg/colly/queue"
 
 	"github.com/lucmichalski/finance-dataset/pkg/articletext"
 	"github.com/lucmichalski/finance-dataset/pkg/config"
@@ -113,7 +117,13 @@ func Extract(cfg *config.Config) error {
 		}
 
 		// articletext.
-		page.Content = strings.TrimSpace(e.ChildText(`div[itemprop="articleBody"]`))
+		// page.Content = strings.TrimSpace(e.ChildText(`div[itemprop="articleBody"]`))
+		content, err := articletext.GetArticleTextFromHtmlNode(e.Node)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		page.Content = content
 
 		// e.ForEach(`script[type="application/ld+json"]`, func(_ int, el *colly.HTMLElement) {
 		// })

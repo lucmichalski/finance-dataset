@@ -4,7 +4,8 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/gocolly/colly/v2"
+	"github.com/lucmichalski/finance-dataset/pkg/colly"
+	// "github.com/gocolly/colly/v2"
 )
 
 const stop = true

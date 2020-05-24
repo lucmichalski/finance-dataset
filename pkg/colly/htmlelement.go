@@ -26,6 +26,7 @@ type HTMLElement struct {
 	// Name is the name of the tag
 	Name       string
 	Text       string
+	Html	   string
 	attributes []html.Attribute
 	// Request is the request object of the element's HTML document
 	Request *Request
@@ -34,17 +35,22 @@ type HTMLElement struct {
 	// DOM is the goquery parsed DOM object of the page. DOM is relative
 	// to the current HTMLElement
 	DOM *goquery.Selection
+	// Node is the html node
+	Node *html.Node
 	// Index stores the position of the current element within all the elements matched by an OnHTML callback
 	Index int
 }
 
 // NewHTMLElementFromSelectionNode creates a HTMLElement from a goquery.Selection Node.
 func NewHTMLElementFromSelectionNode(resp *Response, s *goquery.Selection, n *html.Node, idx int) *HTMLElement {
+	htmlContent, _ := goquery.NewDocumentFromNode(n).Html()
 	return &HTMLElement{
 		Name:       n.Data,
 		Request:    resp.Request,
 		Response:   resp,
+		Html:	    htmlContent,
 		Text:       goquery.NewDocumentFromNode(n).Text(),
+		Node:       n,
 		DOM:        s,
 		Index:      idx,
 		attributes: n.Attr,
