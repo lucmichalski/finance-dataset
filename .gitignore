@@ -16,3 +16,4 @@
 *.csv
 *.tar.gz
 .env
+*.DS_Store
