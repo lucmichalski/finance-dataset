@@ -5,7 +5,7 @@ replace github.com/lucmichalski/finance-dataset => ../..
 go 1.14
 
 require (
-        github.com/pkg/errors v0.8.1
+	github.com/araddon/dateparse v0.0.0-20200409225146-d820a6159ab1
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/beevik/etree v1.1.0 // indirect
 	github.com/corpix/uarand v0.1.1
@@ -23,6 +23,7 @@ require (
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
 	github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481
+	github.com/pkg/errors v0.8.1
 	github.com/qor/admin v0.0.0-20200315024928-877b98a68a6f
 	github.com/qor/assetfs v0.0.0-20170713023933-ff57fdc13a14 // indirect
 	github.com/qor/middlewares v0.0.0-20170822143614-781378b69454 // indirect

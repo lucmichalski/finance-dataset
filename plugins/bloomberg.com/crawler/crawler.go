@@ -1,26 +1,31 @@
 package crawler
 
 import (
+	"encoding/csv"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/araddon/dateparse"
 	captcha "github.com/gocolly/twocaptcha"
 	"github.com/k0kubun/pp"
 	"github.com/nozzle/throttler"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lucmichalski/finance-dataset/pkg/config"
+	ccsv "github.com/lucmichalski/finance-dataset/pkg/csv"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 	"github.com/lucmichalski/finance-dataset/pkg/selenium"
 	"github.com/lucmichalski/finance-dataset/pkg/selenium/chrome"
 	slog "github.com/lucmichalski/finance-dataset/pkg/selenium/log"
 	"github.com/lucmichalski/finance-dataset/pkg/sitemap"
+	"github.com/lucmichalski/finance-dataset/pkg/utils"
 )
 
 var (
 	successMsg     = "div[class='recaptcha-success']"
-	apiKey2captcha = "4c4cb693aef7c0dbd7af6622e78ee5eb"         // Your 2captcha.com API key
+	apiKey2captcha = ""         // Your 2captcha.com API key
 	recaptchaV2Key = "6Lcj-R8TAAAAABs3FrRPuQhLMbp5QrHsHufzLf7b" // v2 Site Key (data-sitekey) inspected from target website
 )
 
@@ -62,45 +67,80 @@ func Extract(cfg *config.Config) error {
 	defer wd.Quit()
 
 	var links []string
-	if cfg.IsSitemapIndex {
-		for _, i := range cfg.URLs {
-			log.Infoln("extractSitemapIndex...", i)
-			sitemaps, err := sitemap.ExtractSitemapIndex(i)
-			if err != nil {
-				log.Fatal("ExtractSitemapIndex:", err)
-				return err
-			}
-			for _, s := range sitemaps {
-				log.Infoln("processing ", s)
-				if strings.HasSuffix(s, ".gz") {
-					log.Infoln("extract sitemap gz compressed...")
-					locs, err := sitemap.ExtractSitemapGZ(s)
-					if err != nil {
-						log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", s)
-						return err
-					}
-					for _, loc := range locs {
-						if strings.HasPrefix(loc, "news/articles") {
-							links = append(links, loc)
+	utils.EnsureDir("./shared/queue/")
+	if _, err := os.Stat("shared/queue/bloomberg.com_sitemap.csv"); !os.IsNotExist(err) {
+		file, err := os.Open("shared/queue/bloomberg.com_sitemap.csv")
+		if err != nil {
+			return err
+		}
+
+		reader := csv.NewReader(file)
+		reader.Comma = ','
+		reader.LazyQuotes = true
+		data, err := reader.ReadAll()
+		if err != nil {
+			return err
+		}
+
+		utils.Shuffle(data)
+		for _, loc := range data {
+			links = append(links, loc[0])
+		}
+	} else {
+
+		// save discovered links
+		csvSitemap, err := ccsv.NewCsvWriter("shared/queue/bloomberg.com_sitemap.csv", ',')
+		if err != nil {
+			panic("Could not open `bloomberg.com_sitemap.csv` for writing")
+		}
+
+		// Flush pending writes and close file upon exit of Sitemap()
+		defer csvSitemap.Close()
+
+		if cfg.IsSitemapIndex {
+			for _, i := range cfg.URLs {
+				log.Infoln("extractSitemapIndex...", i)
+				sitemaps, err := sitemap.ExtractSitemapIndex(i)
+				if err != nil {
+					log.Fatal("ExtractSitemapIndex:", err)
+					return err
+				}
+				for _, s := range sitemaps {
+					log.Infoln("processing ", s)
+					if strings.HasSuffix(s, ".gz") {
+						log.Infoln("extract sitemap gz compressed...")
+						locs, err := sitemap.ExtractSitemapGZ(s)
+						if err != nil {
+							log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", s)
+							return err
 						}
-					}
-				} else {
-					locs, err := sitemap.ExtractSitemap(s)
-					if err != nil {
-						log.Warn("ExtractSitemap", err)
-						// return err
-						continue
-					}
-					for _, loc := range locs {
-						if strings.HasPrefix(loc, "news/articles") {
-							links = append(links, loc)
+						for _, loc := range locs {
+							if strings.Contains(loc, "news/articles") {
+								links = append(links, loc)
+								csvSitemap.Write([]string{loc, s})
+								csvSitemap.Flush()
+							}
+						}
+					} else {
+						locs, err := sitemap.ExtractSitemap(s)
+						if err != nil {
+							log.Warn("ExtractSitemap", err)
+							// return err
+							continue
+						}
+						for _, loc := range locs {
+							if strings.Contains(loc, "news/articles") {
+								links = append(links, loc)
+								csvSitemap.Write([]string{loc, s})
+								csvSitemap.Flush()
+							}
 						}
 					}
 				}
 			}
+		} else {
+			links = append(links, cfg.URLs...)
 		}
-	} else {
-		links = append(links, cfg.URLs...)
 	}
 
 	pp.Println("found:", len(links))
@@ -151,9 +191,9 @@ func scrapeSelenium(url string, cfg *config.Config, wd selenium.WebDriver) error
 	if err != nil {
 		return err
 	}
-	// fmt.Println("source", src)
 
 	if strings.Contains(src, recaptchaV2Key) {
+		fmt.Println("source", src)
 		log.Warnln("does contain captacha challenge")
 		wd = v2Solver(url, wd)
 	}
@@ -161,7 +201,7 @@ func scrapeSelenium(url string, cfg *config.Config, wd selenium.WebDriver) error
 	// create vehicle
 	page := &models.Page{}
 	page.Link = url
-	page.Class = "news"
+	page.Class = "news/articles"
 	page.Source = "bloomberg.com"
 
 	// write email
@@ -174,20 +214,30 @@ func scrapeSelenium(url string, cfg *config.Config, wd selenium.WebDriver) error
 	if err != nil {
 		return err
 	}
-	pp.Println("title:", title)
+	if cfg.IsDebug {
+		pp.Println("title:", title)
+	}
+	page.Title = title
 
 	authorsCnt, err := wd.FindElements(selenium.ByCSSSelector, "div.author-v2 a")
 	if err != nil {
 		return err
 	}
 
+	var authors []string
 	for _, authorCnt := range authorsCnt {
 		author, err := authorCnt.Text()
 		if err != nil {
 			return err
 		}
-		pp.Println("author:", author)
+		if author != "" {
+			authors = append(authors, author)
+			if cfg.IsDebug {
+				pp.Println("author:", author)
+			}
+		}
 	}
+	page.Authors = strings.Join(authors, ",")
 
 	timeCnt, err := wd.FindElement(selenium.ByCSSSelector, "time[itemprop=\"datePublished\"]")
 	if err != nil {
@@ -198,7 +248,14 @@ func scrapeSelenium(url string, cfg *config.Config, wd selenium.WebDriver) error
 	if err != nil {
 		return err
 	}
-	pp.Println("publishedAt:", publishedAt)
+	if cfg.IsDebug {
+		pp.Println("publishedAt:", publishedAt)
+	}
+	publishedAtTime, err := dateparse.ParseAny(publishedAt)
+	if err != nil {
+		log.Fatal(err)
+	}
+	page.PublishedAt = publishedAtTime
 
 	bodyCnt, err := wd.FindElement(selenium.ByCSSSelector, "div.body-copy-v2.fence-body")
 	if err != nil {
@@ -209,9 +266,16 @@ func scrapeSelenium(url string, cfg *config.Config, wd selenium.WebDriver) error
 	if err != nil {
 		return err
 	}
-	pp.Println("body:", body)
+	if cfg.IsDebug {
+		pp.Println("body:", body)
+	}
 
-	pp.Println(page)
+	page.Content = strings.TrimSpace(body)
+
+	if cfg.IsDebug {
+		pp.Println(page)
+	}
+
 	// save page
 	if !cfg.DryMode {
 		if err := cfg.DB.Create(&page).Error; err != nil {
@@ -255,12 +319,21 @@ func v2Solver(recaptchaURL string, wd selenium.WebDriver) selenium.WebDriver {
 
 				time.Sleep(3 * time.Second) // Wait
 
+				/*
+					// switch to iframe
+					wd.SwitchFrame("iframe[role=\"presentation\"]")
+
+					src, err := wd.PageSource()
+					if err != nil {
+						return err
+					}
+				*/
+				//*[@id="px-captcha"]
 				// Submit form
-				_, err = wd.ExecuteScript(fmt.Sprintf("document.getElementById('recaptcha-demo-form').submit();"), nil)
+				_, err = wd.ExecuteScript(fmt.Sprintf("document.getElementById('px-captcha').click();"), nil)
 				if err != nil {
 					log.Println(fmt.Sprintf("[✕](v2) Submit button not clicked: %s", err)) // ReCaptcha Form wasn't submitted.
-
-					time.Sleep(3 * time.Minute) // Wait
+					time.Sleep(3 * time.Minute)                                            // Wait
 				} else {
 					log.Println("[✓](v2) Submit button clicked.")
 
@@ -273,7 +346,7 @@ func v2Solver(recaptchaURL string, wd selenium.WebDriver) selenium.WebDriver {
 						log.Println("[✓](v2) ReCaptcha successfully solved!")
 					}
 
-					time.Sleep(2 * time.Minute) // Wait
+					// time.Sleep(2 * time.Minute) // Wait
 
 					// End of script
 				}
