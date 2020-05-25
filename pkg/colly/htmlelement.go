@@ -50,10 +50,8 @@ func NewHTMLElementFromSelectionNode(resp *Response, s *goquery.Selection, n *ht
 		Response:   resp,
 		Html:	    htmlContent,
 		Text:       goquery.NewDocumentFromNode(n).Text(),
-		Html:       goquery.NewDocumentFromNode(n).Html(),
 		Node:       n,
 		DOM:        s,
-		Node:       n,
 		Index:      idx,
 		attributes: n.Attr,
 	}
