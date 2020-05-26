@@ -2,169 +2,41 @@ package crawler
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/araddon/dateparse"
-	"github.com/corpix/uarand"
+	// "github.com/araddon/dateparse"
 	"github.com/k0kubun/pp"
+	"github.com/nozzle/throttler"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/proxy"
 
-	"github.com/lucmichalski/finance-dataset/pkg/articletext"
-	"github.com/lucmichalski/finance-dataset/pkg/colly"
-	"github.com/lucmichalski/finance-dataset/pkg/colly/proxy"
-	"github.com/lucmichalski/finance-dataset/pkg/colly/queue"
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	ccsv "github.com/lucmichalski/finance-dataset/pkg/csv"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 	"github.com/lucmichalski/finance-dataset/pkg/sitemap"
 	"github.com/lucmichalski/finance-dataset/pkg/utils"
+
+	pmodels "github.com/lucmichalski/finance-contrib/lesechos.fr/models"
+)
+
+// change it asap, pass it through the config
+const (
+	torProxyAddress   = "socks5://51.210.37.251:5566"
+	torPrivoxyAddress = "socks5://51.210.37.251:8119"
 )
 
 func Extract(cfg *config.Config) error {
 
-	// Instantiate default collector
-	c := colly.NewCollector(
-		colly.AllowURLRevisit(),
-		colly.UserAgent(uarand.GetRandom()),
-		colly.CacheDir(cfg.CacheDir),
-	)
+	// publishedAtTime, err := dateparse.ParseAny(publishedAtStr)
 
-	// Rotate two socks5 proxies
-	rp, err := proxy.RoundRobinProxySwitcher("http://localhost:8119")
-	if err != nil {
-		log.Fatal(err)
-	}
-	c.SetProxyFunc(rp)
-
-	// create a request queue with 1 consumer thread until we solve the multi-threadin of the darknet model
-	q, _ := queue.New(
-		cfg.ConsumerThreads,
-		&queue.InMemoryQueueStorage{
-			MaxSize: cfg.QueueMaxSize,
-		},
-	)
-
-	// Create a callback on the XPath query searching for the URLs
-	c.OnXML("//sitemap/loc", func(e *colly.XMLElement) {
-		q.AddURL(e.Text)
-	})
-
-	// Create a callback on the XPath query searching for the URLs
-	c.OnXML("//urlset/url/loc", func(e *colly.XMLElement) {
-		q.AddURL(e.Text)
-	})
-
-	c.OnError(func(r *colly.Response, err error) {
-		fmt.Println("error:", err, r.Request.URL, r.StatusCode)
-		q.AddURL(r.Request.URL.String())
-	})
-
-	c.OnHTML(`html`, func(e *colly.HTMLElement) {
-
-		// check if news page
-		//if !strings.Contains(e.Request.Ctx.Get("url"), "/news/") || !strings.Contains(e.Request.Ctx.Get("url"), "/news/") {
-		//	return
-		//}
-
-		// check in the databse if exists
-		var pageExists models.Page
-		if !cfg.DryMode {
-			if !cfg.DB.Where("link = ?", e.Request.Ctx.Get("url")).First(&pageExists).RecordNotFound() {
-				fmt.Printf("skipping url=%s as already exists\n", e.Request.Ctx.Get("url"))
-				return
-			}
-		}
-
-		page := &models.Page{}
-		page.Link = e.Request.Ctx.Get("url")
-		page.Source = "lesechos.fr"
-		page.Class = "news"
-
-		// categories
-		var categories []string
-		e.ForEach(`ul.breadcrumb-list span`, func(_ int, el *colly.HTMLElement) {
-			if el.Text != "" {
-				categories = append(categories, el.Text)
-			}
-		})
-		page.Categories = strings.Join(categories, ",")
-
-		// title
-		page.Title = e.ChildText("h1[itemprop=\"headline\"]")
-
-		// author
-		var authors []string
-		e.ForEach(`a.author`, func(_ int, el *colly.HTMLElement) {
-			if el.Text != "" {
-				authors = append(authors, strings.TrimSpace(el.Text))
-			}
-		})
-		page.Authors = strings.Join(authors, ",")
-
-		// date
-		e.ForEach(`time[itemprop="datePublished"]`, func(_ int, el *colly.HTMLElement) {
-			publishedAtStr := el.Attr("datetime")
-			publishedAtStr = strings.TrimSpace(publishedAtStr)
-			if publishedAtStr != "" {
-				publishedAtTime, err := dateparse.ParseAny(publishedAtStr)
-				if err != nil {
-					log.Fatal(err)
-				}
-				page.PublishedAt = publishedAtTime
-			} else {
-				page.PublishedAt = time.Now()
-			}
-		})
-
-		// article content
-		content, err := articletext.GetArticleTextFromHtmlNode(e.Node)
-		if err != nil {
-			log.Fatal(err)
-		}
-		page.Content = content
-
-		// page.Content = e.ChildText("div[itemprop=\"articleBody\"]")
-
-		if cfg.IsDebug {
-			pp.Println("page:", page)
-		}
-
-		// page.PageProperties = append(page.PageProperties, models.PageProperty{Name: "InteriorColor", Value: val})
-
-		if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
-			return
-		}
-
-		if cfg.IsDebug {
-			pp.Println("page:", page)
-		}
-
-		if !cfg.DryMode {
-			if err := cfg.DB.Create(&page).Error; err != nil {
-				log.Fatalf("create page (%v) failure, got err %v", page, err)
-				return
-			}
-		}
-
-	})
-
-	c.OnResponse(func(r *colly.Response) {
-		if cfg.IsDebug {
-			fmt.Println("OnResponse from", r.Ctx.Get("url"))
-		}
-	})
-
-	// Before making a request print "Visiting ..."
-	c.OnRequest(func(r *colly.Request) {
-		//if cfg.IsDebug {
-		fmt.Println("Visiting", r.URL.String())
-		//}
-		r.Ctx.Put("url", r.URL.String())
-	})
-
+	var links []string
 	utils.EnsureDir("./shared/queue/")
 	if _, err := os.Stat("shared/queue/lesechos.fr_sitemap.csv"); !os.IsNotExist(err) {
 		file, err := os.Open("shared/queue/lesechos.fr_sitemap.csv")
@@ -182,7 +54,7 @@ func Extract(cfg *config.Config) error {
 
 		utils.Shuffle(data)
 		for _, loc := range data {
-			q.AddURL(loc[0])
+			links = append(links, loc[0])
 		}
 	} else {
 
@@ -203,7 +75,6 @@ func Extract(cfg *config.Config) error {
 					log.Fatal("ExtractSitemapIndex:", err)
 					return err
 				}
-				// shall we shuffle ?
 				utils.Shuffle(sitemaps)
 				for _, s := range sitemaps {
 					log.Infoln("processing ", s)
@@ -216,11 +87,9 @@ func Extract(cfg *config.Config) error {
 						}
 						utils.Shuffle(locs)
 						for _, loc := range locs {
-							if strings.Contains(loc, "/news/") || strings.Contains(loc, "/pmn/") {
-								q.AddURL(loc)
-								csvSitemap.Write([]string{loc, s})
-								csvSitemap.Flush()
-							}
+							links = append(links, loc)
+							csvSitemap.Write([]string{loc, s})
+							csvSitemap.Flush()
 						}
 					} else {
 						locs, err := sitemap.ExtractSitemap(s)
@@ -230,26 +99,100 @@ func Extract(cfg *config.Config) error {
 						}
 						utils.Shuffle(locs)
 						for _, loc := range locs {
-							if strings.Contains(loc, "/news/") || strings.Contains(loc, "/pmn/") {
-								q.AddURL(loc)
-								csvSitemap.Write([]string{loc, s})
-								csvSitemap.Flush()
-							}
+							links = append(links, loc)
+							csvSitemap.Write([]string{loc, s})
+							csvSitemap.Flush()
 						}
 					}
 				}
 			}
 		} else {
 			for _, u := range cfg.URLs {
-				q.AddURL(u)
+				links = append(links, u)
 				csvSitemap.Write([]string{u, ""})
 				csvSitemap.Flush()
 			}
 		}
 	}
 
-	// Consume URLs
-	q.Run(c)
+	pp.Println("found:", len(links))
 
+	t := throttler.New(cfg.ConsumerThreads, len(links))
+
+	for _, link := range links {
+		log.Println("processing link:", link)
+		go func(link string) error {
+			defer t.Done(nil)
+			// https://www.lesechos.fr/industrie-services/automobile/lautomobile-tricolore-attend-febrilement-son-plan-de-relance-1205614
+			linkParts := strings.Split(link, "-")
+			linkID := linkParts[len(linkParts)-1]
+			err := getArticle(linkID, cfg)
+			if err != nil {
+				log.Warnln(err)
+			}
+			return err
+		}(link)
+		t.Throttle()
+	}
+
+	// throttler errors iteration
+	if t.Err() != nil {
+		// Loop through the errors to see the details
+		for i, err := range t.Errs() {
+			log.Printf("error #%d: %s", i, err)
+		}
+		log.Fatal(t.Err())
+	}
+
+	return nil
+}
+
+func getArticle(id string, cfg *config.Config) error {
+	rawUrl := fmt.Sprintf("https://api.lesechos.fr/api/v1/articles/%s", id)
+
+	client := &http.Client{
+		Timeout: 60 * time.Second,
+	}
+
+	tbProxyURL, err := url.Parse(torProxyAddress)
+	if err != nil {
+		return err
+	}
+
+	tbDialer, err := proxy.FromURL(tbProxyURL, proxy.Direct)
+	if err != nil {
+		return err
+	}
+	tbTransport := &http.Transport{
+		Dial: tbDialer.Dial,
+	}
+	client.Transport = tbTransport
+
+	request, err := http.NewRequest("GET", rawUrl, nil)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer response.Body.Close()
+
+	// unmarshall response
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+
+	// log.Println(string(body))
+	fmt.Println("Body:", string(body))
+	var result pmodels.Article
+	json.NewDecoder(strings.NewReader(string(body))).Decode(&result)
+	pp.Println(result)
+
+	page := &models.Page{}
+	pp.Println(page)
 	return nil
 }

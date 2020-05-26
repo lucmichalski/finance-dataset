@@ -41,6 +41,7 @@ plugin:
 
 ## plugins			:	Build all qorpress plugins
 plugins:
+	GOARCH=amd64 PLUGIN=lesechos.fr make plugin
 	GOARCH=amd64 PLUGIN=business.financialpost.com make plugin
 	GOARCH=amd64 PLUGIN=bloomberg.com make plugin
 	GOARCH=amd64 PLUGIN=barrons.com make plugin

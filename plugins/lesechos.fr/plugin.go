@@ -47,8 +47,8 @@ func (o lesEchosPlugin) Config() *config.Config {
 		URLs: []string{
 			"https://sitemap.lesechos.fr/sitemap_index.xml",
 		},
-		QueueMaxSize:    1000000,
-		ConsumerThreads: 1,
+		QueueMaxSize:    10000000,
+		ConsumerThreads: 6,
 		IsSitemapIndex:  true,
 	}
 	return cfg
