@@ -226,6 +226,11 @@ func main() {
 		pages := Admin.AddResource(&models.Page{}, &admin.Config{Menu: []string{"Crawl Management"}})
 		pages.IndexAttrs("ID", "Authors", "Link", "Title")
 
+                pages.Meta(&admin.Meta{
+                        Name: "Content",
+                        Type: "rich_editor",
+                })
+
 		pages.Filter(&admin.Filter{
 			Name: "Authors",
 			Type: "string",
