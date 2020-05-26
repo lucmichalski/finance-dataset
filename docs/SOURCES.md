@@ -39,3 +39,7 @@
 - Sitemap: https://www.bloomberg.com/feeds/curated/feeds/graphics_news.xml
 - Sitemap: https://www.bloomberg.com/feeds/curated/feeds/graphics_sitemap.xml
 - Sitemap: https://www.bloomberg.com/pursuits/property-listings/sitemap.xml
+
+## LesEchos.fr
+- Sitemap: https://sitemap.lesechos.fr/sitemap_index.xml
+- Sitemap: https://www.lesechos.fr/sitemap_news.xml

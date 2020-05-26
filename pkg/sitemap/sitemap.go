@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	// "io/ioutil"
+	// "os"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -303,6 +305,17 @@ func ExtractSitemap(rawUrl string) ([]string, error) {
 		return nil, err
 	}
 	defer response.Body.Close()
+
+	/*
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		// log.Println(string(body))
+		fmt.Println("Body:", string(body))
+		os.Exit(1)
+	*/
 
 	doc := etree.NewDocument()
 	if _, err := doc.ReadFrom(response.Body); err != nil {

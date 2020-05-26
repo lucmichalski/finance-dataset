@@ -45,7 +45,7 @@ func (o businessFinancialPostPlugin) Config() *config.Config {
 	cfg := &config.Config{
 		AllowedDomains: []string{"business.financialpost.com"},
 		URLs: []string{
-			"https://business.financialpost.com/news-sitemap.xml",
+			//"https://business.financialpost.com/news-sitemap.xml",
 			"https://business.financialpost.com/sitemap.xml",
 		},
 		QueueMaxSize:    1000000,

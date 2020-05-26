@@ -1,22 +1,26 @@
 package crawler
 
 import (
+	"encoding/csv"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/araddon/dateparse"
 	"github.com/corpix/uarand"
-	"github.com/gocolly/colly/v2"
-	"github.com/gocolly/colly/v2/proxy"
-	"github.com/gocolly/colly/v2/queue"
 	"github.com/k0kubun/pp"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/lucmichalski/finance-dataset/pkg/articletext"
+	"github.com/lucmichalski/finance-dataset/pkg/colly"
+	"github.com/lucmichalski/finance-dataset/pkg/colly/proxy"
+	"github.com/lucmichalski/finance-dataset/pkg/colly/queue"
 	"github.com/lucmichalski/finance-dataset/pkg/config"
+	ccsv "github.com/lucmichalski/finance-dataset/pkg/csv"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 	"github.com/lucmichalski/finance-dataset/pkg/sitemap"
-	// "github.com/lucmichalski/finance-dataset/pkg/utils"
+	"github.com/lucmichalski/finance-dataset/pkg/utils"
 )
 
 func Extract(cfg *config.Config) error {
@@ -61,9 +65,9 @@ func Extract(cfg *config.Config) error {
 	c.OnHTML(`html`, func(e *colly.HTMLElement) {
 
 		// check if news page
-		if !strings.Contains(e.Request.Ctx.Get("url"), "/news/") {
-			return
-		}
+		//if !strings.Contains(e.Request.Ctx.Get("url"), "/news/") || !strings.Contains(e.Request.Ctx.Get("url"), "/news/") {
+		//	return
+		//}
 
 		// check in the databse if exists
 		var pageExists models.Page
@@ -101,21 +105,28 @@ func Extract(cfg *config.Config) error {
 		page.Authors = strings.Join(authors, ",")
 
 		// date
-		publishedAtStr := e.ChildText("time[itemprop=\"datePublished\"]")
-		publishedAtStr = strings.TrimSpace(publishedAtStr)
-		publishedAtStr = strings.Replace(publishedAtStr, " EDT", "", -1)
-		if publishedAtStr != "" {
-			publishedAtTime, err := dateparse.ParseAny(publishedAtStr)
-			if err != nil {
-				log.Fatal(err)
+		e.ForEach(`time[itemprop="datePublished"]`, func(_ int, el *colly.HTMLElement) {
+			publishedAtStr := el.Attr("datetime")
+			publishedAtStr = strings.TrimSpace(publishedAtStr)
+			if publishedAtStr != "" {
+				publishedAtTime, err := dateparse.ParseAny(publishedAtStr)
+				if err != nil {
+					log.Fatal(err)
+				}
+				page.PublishedAt = publishedAtTime
+			} else {
+				page.PublishedAt = time.Now()
 			}
-			page.PublishedAt = publishedAtTime
-		} else {
-			page.PublishedAt = time.Now()
-		}
+		})
 
 		// article content
-		page.Content = e.ChildText("div[itemprop=\"articleBody\"]")
+		content, err := articletext.GetArticleTextFromHtmlNode(e.Node)
+		if err != nil {
+			log.Fatal(err)
+		}
+		page.Content = content
+
+		// page.Content = e.ChildText("div[itemprop=\"articleBody\"]")
 
 		if cfg.IsDebug {
 			pp.Println("page:", page)
@@ -154,49 +165,86 @@ func Extract(cfg *config.Config) error {
 		r.Ctx.Put("url", r.URL.String())
 	})
 
-	if cfg.IsSitemapIndex {
-		log.Infoln("extractSitemapIndex...")
-		for _, i := range cfg.URLs {
-			sitemaps, err := sitemap.ExtractSitemapIndex(i)
-			if err != nil {
-				log.Fatal("ExtractSitemapIndex:", err)
-				return err
-			}
-			// shall we shuffle ?
-			// utils.Shuffle(sitemaps)
-			for _, s := range sitemaps {
-				log.Infoln("processing ", s)
-				if strings.HasSuffix(s, ".gz") {
-					log.Infoln("extract sitemap gz compressed...")
-					locs, err := sitemap.ExtractSitemapGZ(s)
-					if err != nil {
-						log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", s)
-						return err
-					}
-					// utils.Shuffle(locs)
-					for _, loc := range locs {
-						if strings.Contains(loc, "/news/") {
-							q.AddURL(loc)
+	utils.EnsureDir("./shared/queue/")
+	if _, err := os.Stat("shared/queue/business.financialpost.com_sitemap.csv"); !os.IsNotExist(err) {
+		file, err := os.Open("shared/queue/business.financialpost.com_sitemap.csv")
+		if err != nil {
+			return err
+		}
+
+		reader := csv.NewReader(file)
+		reader.Comma = ','
+		reader.LazyQuotes = true
+		data, err := reader.ReadAll()
+		if err != nil {
+			return err
+		}
+
+		utils.Shuffle(data)
+		for _, loc := range data {
+			q.AddURL(loc[0])
+		}
+	} else {
+
+		// save discovered links
+		csvSitemap, err := ccsv.NewCsvWriter("shared/queue/business.financialpost.com_sitemap.csv", ',')
+		if err != nil {
+			panic("Could not open `business.financialpost.com_sitemap.csv` for writing")
+		}
+
+		// Flush pending writes and close file upon exit of Sitemap()
+		defer csvSitemap.Close()
+
+		if cfg.IsSitemapIndex {
+			log.Infoln("extractSitemapIndex...")
+			for _, i := range cfg.URLs {
+				sitemaps, err := sitemap.ExtractSitemapIndex(i)
+				if err != nil {
+					log.Fatal("ExtractSitemapIndex:", err)
+					return err
+				}
+				// shall we shuffle ?
+				utils.Shuffle(sitemaps)
+				for _, s := range sitemaps {
+					log.Infoln("processing ", s)
+					if strings.HasSuffix(s, ".gz") {
+						log.Infoln("extract sitemap gz compressed...")
+						locs, err := sitemap.ExtractSitemapGZ(s)
+						if err != nil {
+							log.Fatal("ExtractSitemapGZ: ", err, "sitemap: ", s)
+							return err
 						}
-					}
-				} else {
-					locs, err := sitemap.ExtractSitemap(s)
-					if err != nil {
-						log.Fatal("ExtractSitemap", err)
-						return err
-					}
-					// utils.Shuffle(locs)
-					for _, loc := range locs {
-						if strings.Contains(loc, "/news/") {
-							q.AddURL(loc)
+						utils.Shuffle(locs)
+						for _, loc := range locs {
+							if strings.Contains(loc, "/news/") || strings.Contains(loc, "/pmn/") {
+								q.AddURL(loc)
+								csvSitemap.Write([]string{loc, s})
+								csvSitemap.Flush()
+							}
+						}
+					} else {
+						locs, err := sitemap.ExtractSitemap(s)
+						if err != nil {
+							log.Fatal("ExtractSitemap", err)
+							return err
+						}
+						utils.Shuffle(locs)
+						for _, loc := range locs {
+							if strings.Contains(loc, "/news/") || strings.Contains(loc, "/pmn/") {
+								q.AddURL(loc)
+								csvSitemap.Write([]string{loc, s})
+								csvSitemap.Flush()
+							}
 						}
 					}
 				}
 			}
-		}
-	} else {
-		for _, u := range cfg.URLs {
-			q.AddURL(u)
+		} else {
+			for _, u := range cfg.URLs {
+				q.AddURL(u)
+				csvSitemap.Write([]string{u, ""})
+				csvSitemap.Flush()
+			}
 		}
 	}
 
