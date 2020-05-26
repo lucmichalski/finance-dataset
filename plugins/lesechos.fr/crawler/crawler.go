@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"errors"
 
 	"github.com/araddon/dateparse"
 	"github.com/k0kubun/pp"
@@ -146,6 +147,16 @@ func Extract(cfg *config.Config) error {
 }
 
 func getArticle(link string, cfg *config.Config) error {
+
+	// check in the databse if exists
+	var pageExists models.Page
+	if !cfg.DryMode {
+		if !cfg.DB.Where("link = ?", link).First(&pageExists).RecordNotFound() {
+			fmt.Printf("skipping url=%s as already exists\n", link)
+			return nil
+		}
+	}
+
 	linkParts := strings.Split(link, "-")
 	linkID := linkParts[len(linkParts)-1]
 	rawUrl := fmt.Sprintf("https://api.lesechos.fr/api/v1/articles/%s", linkID)
@@ -188,7 +199,7 @@ func getArticle(link string, cfg *config.Config) error {
 
 	var result pmodels.Article
 	json.NewDecoder(strings.NewReader(string(body))).Decode(&result)
-	pp.Println(result)
+	// pp.Println(result)
 
 	page := &models.Page{}
 	page.Link = link
@@ -212,7 +223,6 @@ func getArticle(link string, cfg *config.Config) error {
 	var categories []string
 	categories = append(categories, result.Stripes[0].MainContent[0].Data.Section.Label)
 	categories = append(categories, result.Stripes[0].MainContent[0].Data.Subsection.Label)
-
 	page.Categories = strings.Join(categories, ",")
 
 	var tags []string
@@ -231,9 +241,20 @@ func getArticle(link string, cfg *config.Config) error {
 
 	page.Tags = strings.Join(tags, ",")
 
-	// result.MainContent[0].Data.Tags
+	if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
+		return errors.New("No enough attributes to be registered")
+	}
 
-	pp.Println(page)
+	if cfg.IsDebug {
+		pp.Println("page:", page)
+	}
+
+	if !cfg.DryMode {
+		if err := cfg.DB.Create(&page).Error; err != nil {
+			log.Fatalf("create page (%v) failure, got err %v", page, err)
+			return err
+		}
+	}
 
 	return nil
 }
