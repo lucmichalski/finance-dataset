@@ -32,7 +32,7 @@ func main() {
 	DB.AutoMigrate(&models.Page{})
 
 	cfg := &config.Config{
-		AllowedDomains: []string{"lesechos.fr"},
+		AllowedDomains: []string{"lesechos.fr", "www.lesechos.fr"},
 		URLs: []string{
 			"https://www.lesechos.fr/industrie-services/automobile/lautomobile-tricolore-attend-febrilement-son-plan-de-relance-1205614",
 		},

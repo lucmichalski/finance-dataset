@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	// "github.com/araddon/dateparse"
+	"github.com/araddon/dateparse"
 	"github.com/k0kubun/pp"
 	"github.com/nozzle/throttler"
 	log "github.com/sirupsen/logrus"
@@ -124,9 +124,7 @@ func Extract(cfg *config.Config) error {
 		go func(link string) error {
 			defer t.Done(nil)
 			// https://www.lesechos.fr/industrie-services/automobile/lautomobile-tricolore-attend-febrilement-son-plan-de-relance-1205614
-			linkParts := strings.Split(link, "-")
-			linkID := linkParts[len(linkParts)-1]
-			err := getArticle(linkID, cfg)
+			err := getArticle(link, cfg)
 			if err != nil {
 				log.Warnln(err)
 			}
@@ -147,8 +145,10 @@ func Extract(cfg *config.Config) error {
 	return nil
 }
 
-func getArticle(id string, cfg *config.Config) error {
-	rawUrl := fmt.Sprintf("https://api.lesechos.fr/api/v1/articles/%s", id)
+func getArticle(link string, cfg *config.Config) error {
+	linkParts := strings.Split(link, "-")
+	linkID := linkParts[len(linkParts)-1]
+	rawUrl := fmt.Sprintf("https://api.lesechos.fr/api/v1/articles/%s", linkID)
 
 	client := &http.Client{
 		Timeout: 60 * time.Second,
@@ -186,13 +186,54 @@ func getArticle(id string, cfg *config.Config) error {
 		return err
 	}
 
-	// log.Println(string(body))
-	fmt.Println("Body:", string(body))
 	var result pmodels.Article
 	json.NewDecoder(strings.NewReader(string(body))).Decode(&result)
 	pp.Println(result)
 
 	page := &models.Page{}
+	page.Link = link
+	page.Source = "lesechos.fr"
+	page.Class = result.Stripes[0].MainContent[0].Data.Type
+
+	var authors []string
+	for _, author := range result.Stripes[0].MainContent[0].Data.Authors {
+		authors = append(authors, author.Signature)
+	}
+	page.Authors = strings.Join(authors, ",")
+
+	page.Title = result.Stripes[0].MainContent[0].Data.Title
+	page.Content = result.Stripes[0].MainContent[0].Data.Description
+	publishedAtTime, err := dateparse.ParseAny(result.Stripes[0].MainContent[0].Data.PublicationDate)
+	if err != nil {
+		log.Fatal(err)
+	}
+	page.PublishedAt = publishedAtTime
+
+	var categories []string
+	categories = append(categories, result.Stripes[0].MainContent[0].Data.Section.Label)
+	categories = append(categories, result.Stripes[0].MainContent[0].Data.Subsection.Label)
+
+	page.Categories = strings.Join(categories, ",")
+
+	var tags []string
+	for _, cat := range result.Stripes[0].MainContent[0].Data.Tags.Categorization {
+		tags = append(tags, cat.Names)
+	}
+	//for _, geo := range result.Stripes[0].MainContent[0].Data.Tags.Geography {
+	//	tags = append(tags, geo)
+	//}
+	for _, org := range result.Stripes[0].MainContent[0].Data.Tags.Organizations {
+		tags = append(tags, org)
+	}
+	for _, people := range result.Stripes[0].MainContent[0].Data.Tags.People {
+		tags = append(tags, people)
+	}
+
+	page.Tags = strings.Join(tags, ",")
+
+	// result.MainContent[0].Data.Tags
+
 	pp.Println(page)
+
 	return nil
 }
