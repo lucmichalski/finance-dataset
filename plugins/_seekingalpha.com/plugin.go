@@ -45,9 +45,9 @@ func (o seekingAlphaPlugin) Config() *config.Config {
 	cfg := &config.Config{
 		AllowedDomains: []string{"www.seekingalpha.com", "seekingalpha.com"},
 		URLs: []string{
-			"https://seekingalpha.com/instablog/index.xml",
-			"https://seekingalpha.com/news/index.xml",
 			"https://seekingalpha.com/article/index.xml",
+			// "https://seekingalpha.com/instablog/index.xml",
+			// "https://seekingalpha.com/news/index.xml",
 		},
 		QueueMaxSize:    1000000,
 		ConsumerThreads: 6,

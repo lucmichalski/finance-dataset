@@ -10,6 +10,7 @@ require (
 	github.com/beevik/etree v1.1.0 // indirect
 	github.com/corpix/uarand v0.1.1
 	github.com/gocolly/colly/v2 v2.0.1
+	github.com/h2non/filetype v1.0.12 // indirect
 	github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7 // indirect
 	github.com/jinzhu/gorm v1.9.12
 	github.com/k0kubun/pp v3.0.1+incompatible

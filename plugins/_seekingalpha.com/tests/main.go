@@ -34,7 +34,9 @@ func main() {
 	cfg := &config.Config{
 		AllowedDomains: []string{"www.seekingalpha.com", "seekingalpha.com"},
 		URLs: []string{
-			"https://www.seekingalpha.com/2020/05/06/affaire-kohler-anticor-depose-plainte-avec-constitution-de-partie-civile/",
+			// "https://seekingalpha.com/article/4350197-only-lonely-can-play",
+			// "https://seekingalpha.com/article/2-mexico-holds-rates-for-4th-month-as-inflation-slows",
+			"https://seekingalpha.com/news/3529014-fda-set-to-ban-all-e-cig-pod-flavors",
 		},
 		DB:              DB,
 		CacheDir:        "../../../shared/data",
