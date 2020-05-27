@@ -3,6 +3,7 @@ package crawler
 import (
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"os"
 	"strings"
 	"time"
-	"errors"
 
 	"github.com/araddon/dateparse"
 	"github.com/k0kubun/pp"
@@ -55,6 +55,13 @@ func Extract(cfg *config.Config) error {
 
 		utils.Shuffle(data)
 		for _, loc := range data {
+			var pageExists models.Page
+			if !cfg.DryMode {
+				if !cfg.DB.Where("link = ?", loc[0]).First(&pageExists).RecordNotFound() {
+					fmt.Printf("skipping url=%s as already exists\n", link)
+					continue
+				}
+			}
 			links = append(links, loc[0])
 		}
 	} else {
@@ -240,6 +247,10 @@ func getArticle(link string, cfg *config.Config) error {
 	}
 
 	page.Tags = strings.Join(tags, ",")
+
+	if page.Title == "" {
+		return errors.New("Article title is missing, skipping this entry...")
+	}
 
 	if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
 		return errors.New("No enough attributes to be registered")

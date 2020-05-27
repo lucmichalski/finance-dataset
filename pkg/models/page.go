@@ -27,11 +27,12 @@ type Page struct {
 	Source             string         `gorm:"index:source"`
 	Class              string         `gorm:"index:class"`
 	PageProperties     PageProperties `sql:"type:text"`
+	PageAttributes     []PageAttribute
 }
 
 func (p Page) Validate(db *gorm.DB) {
 	if strings.TrimSpace(p.Title) == "" {
-		db.AddError(validations.NewError(p, "Name", "Name can not be empty"))
+		db.AddError(validations.NewError(p, "Title", "Title can not be empty"))
 	}
 }
 
@@ -78,4 +79,20 @@ func (pageProperties PageProperties) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return json.Marshal(pageProperties)
+}
+
+type PageAttribute struct {
+	gorm.Model
+	PageID uint
+	Name   string
+	Value  string
+}
+
+func (p PageAttribute) Validate(db *gorm.DB) {
+	if strings.TrimSpace(p.Name) == "" {
+		db.AddError(validations.NewError(p, "Name", "Name can not be empty"))
+	}
+	if strings.TrimSpace(p.Value) == "" {
+		db.AddError(validations.NewError(p, "Value", "Value can not be empty"))
+	}
 }
