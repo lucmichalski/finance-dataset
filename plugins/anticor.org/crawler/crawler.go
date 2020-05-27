@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"net/http"
+	"crypto/tls"
 
 	"github.com/araddon/dateparse"
 	"github.com/astaxie/flatmap"
@@ -15,7 +17,7 @@ import (
 
 	"github.com/lucmichalski/finance-dataset/pkg/articletext"
 	"github.com/lucmichalski/finance-dataset/pkg/colly"
-	"github.com/lucmichalski/finance-dataset/pkg/colly/proxy"
+	//"github.com/lucmichalski/finance-dataset/pkg/colly/proxy"
 	"github.com/lucmichalski/finance-dataset/pkg/colly/queue"
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
@@ -26,18 +28,24 @@ func Extract(cfg *config.Config) error {
 
 	// Instantiate default collector
 	c := colly.NewCollector(
-		colly.AllowURLRevisit(),
+		// colly.AllowURLRevisit(),
 		colly.UserAgent(uarand.GetRandom()),
 		colly.CacheDir(cfg.CacheDir),
 	)
 
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	c.WithTransport(tr)
+
 	// Rotate two socks5 proxies
+	/*
 	rp, err := proxy.RoundRobinProxySwitcher("http://localhost:8119")
 	if err != nil {
 		log.Fatal(err)
 	}
 	c.SetProxyFunc(rp)
-
+	*/
 	// create a request queue with 1 consumer thread until we solve the multi-threadin of the darknet model
 	q, _ := queue.New(
 		cfg.ConsumerThreads,
@@ -133,7 +141,13 @@ func Extract(cfg *config.Config) error {
 				}
 			}
 
-			if val, ok := fm["jsonld.publisher.articleSection"]; ok {
+			if val, ok := fm["jsonld.@graph.3.@type"]; ok {
+				page.Class = val
+			} else {
+				page.Class = "post"
+			}
+
+			if val, ok := fm["jsonld.@graph.3.articleSection"]; ok {
 				page.Categories = val
 			}
 
@@ -163,10 +177,6 @@ func Extract(cfg *config.Config) error {
 
 		if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
 			return
-		}
-
-		if cfg.IsDebug {
-			pp.Println("page:", page)
 		}
 
 		if !cfg.DryMode {
