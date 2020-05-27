@@ -58,7 +58,7 @@ func Extract(cfg *config.Config) error {
 			var pageExists models.Page
 			if !cfg.DryMode {
 				if !cfg.DB.Where("link = ?", loc[0]).First(&pageExists).RecordNotFound() {
-					fmt.Printf("skipping url=%s as already exists\n", link)
+					fmt.Printf("skipping url=%s as already exists\n", loc[0])
 					continue
 				}
 			}

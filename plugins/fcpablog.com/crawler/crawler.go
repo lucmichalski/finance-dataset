@@ -1,12 +1,12 @@
 package crawler
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+	"context"
 
 	"github.com/k0kubun/pp"
-	"github.com/nozzle/throttler"
+	// "github.com/nozzle/throttler"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lucmichalski/finance-dataset/pkg/config"
@@ -92,14 +92,14 @@ func Extract(cfg *config.Config) error {
 				if cfg.IsDebug {
 					pp.Println("Tag:", t.Name)
 				}
-				if c.Name != "" {
-					cats = append(cats, c.Name)
+				if t.Name != "" {
+					tags = append(tags, t.Name)
 				}
 			}
 			page.Tags = strings.Join(tags, ",")
 
 			if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
-				return
+				continue
 			}
 
 			if cfg.IsDebug {
@@ -109,7 +109,7 @@ func Extract(cfg *config.Config) error {
 			if !cfg.DryMode {
 				if err := cfg.DB.Create(&page).Error; err != nil {
 					log.Warnf("create page (%v) failure, got err %v", page, err)
-					return
+					continue
 				}
 			}
 		}
@@ -118,4 +118,10 @@ func Extract(cfg *config.Config) error {
 	}
 
 	return nil
+}
+
+func checkErr(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
 }

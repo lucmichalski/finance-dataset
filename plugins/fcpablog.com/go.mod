@@ -13,6 +13,7 @@ require (
 	github.com/jinzhu/gorm v1.9.12
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/lucmichalski/finance-dataset v0.0.0-00010101000000-000000000000
+	github.com/nozzle/throttler v0.0.0-20180817012639-2ea982251481
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
 	github.com/qor/admin v0.0.0-20200315024928-877b98a68a6f
 	github.com/sirupsen/logrus v1.6.0
