@@ -1,5 +1,9 @@
 # SOURCES
 
+## Refs
+- https://github.com/sui313/demo/blob/master/spider/demo1/main.go
+- https://github.com/kangoo13/proxy-checker/blob/master/checkers/utils.go
+
 ## Devex
 - https://www.devex.com/ (sitemap)
 - https://www.devex.com/robots.txt
@@ -11,6 +15,15 @@
 - Sitemap: http://devexsitemap.s3.amazonaws.com/sitemaps/jobs-sitemap.xml.gz
 - Sitemap: http://devexsitemap.s3.amazonaws.com/sitemaps/routes-sitemap.xml.gz
 - Sitemap: http://devexsitemap.s3.amazonaws.com/sitemaps/countries-sitemap.xml.gz
+
+## SeekingAlpha
+- Sitemap: https://seekingalpha.com/sitemap_index.xml
+- Sitemap: https://seekingalpha.com/sitemap_news.xml
+- Sitemap: https://seekingalpha.com/instablog/index.xml
+- Sitemap: https://seekingalpha.com/news/index.xml
+- Sitemap: https://seekingalpha.com/article/index.xml
+- Sitemap: https://seekingalpha.com/author/index.xml
+- Sitemap: https://seekingalpha.com/checkout/index.xml
 
 ## Barrons
 - https://www.barrons.com/

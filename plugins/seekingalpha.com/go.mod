@@ -1,4 +1,4 @@
-module github.com/lucmichalski/finance-contrib/anticor.org
+module github.com/lucmichalski/finance-contrib/seekingalpha.com
 
 replace github.com/lucmichalski/finance-dataset => ../..
 

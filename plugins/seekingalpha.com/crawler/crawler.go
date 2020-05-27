@@ -1,13 +1,13 @@
 package crawler
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
-	"net/http"
-	"crypto/tls"
 
 	"github.com/araddon/dateparse"
 	"github.com/astaxie/flatmap"
@@ -40,11 +40,11 @@ func Extract(cfg *config.Config) error {
 
 	// Rotate two socks5 proxies
 	/*
-	rp, err := proxy.RoundRobinProxySwitcher("http://localhost:8119")
-	if err != nil {
-		log.Fatal(err)
-	}
-	c.SetProxyFunc(rp)
+		rp, err := proxy.RoundRobinProxySwitcher("http://localhost:8119")
+		if err != nil {
+			log.Fatal(err)
+		}
+		c.SetProxyFunc(rp)
 	*/
 	// create a request queue with 1 consumer thread until we solve the multi-threadin of the darknet model
 	q, _ := queue.New(
@@ -82,7 +82,7 @@ func Extract(cfg *config.Config) error {
 
 		page := &models.Page{}
 		page.Link = e.Request.Ctx.Get("url")
-		page.Source = "anticor.org"
+		page.Source = "seekingalpha.com"
 		page.Class = "post"
 
 		// categories

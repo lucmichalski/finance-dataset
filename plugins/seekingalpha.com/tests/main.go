@@ -13,7 +13,7 @@ import (
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 
-	"github.com/lucmichalski/finance-contrib/anticor.org/crawler"
+	"github.com/lucmichalski/finance-contrib/seekingalpha.com/crawler"
 )
 
 func main() {
@@ -32,9 +32,9 @@ func main() {
 	DB.AutoMigrate(&models.Page{})
 
 	cfg := &config.Config{
-		AllowedDomains: []string{"www.anticor.org", "anticor.org"},
+		AllowedDomains: []string{"www.seekingalpha.com", "seekingalpha.com"},
 		URLs: []string{
-			"https://www.anticor.org/2020/05/06/affaire-kohler-anticor-depose-plainte-avec-constitution-de-partie-civile/",
+			"https://www.seekingalpha.com/2020/05/06/affaire-kohler-anticor-depose-plainte-avec-constitution-de-partie-civile/",
 		},
 		DB:              DB,
 		CacheDir:        "../../../shared/data",

@@ -4,7 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type SettingAnticorOrg struct {
+type SettingSeekingAlpha struct {
 	gorm.Model
 	Enabled         bool
 	SitemapURL      string

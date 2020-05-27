@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	adm "github.com/lucmichalski/finance-contrib/anticor.org/admin"
-	"github.com/lucmichalski/finance-contrib/anticor.org/crawler"
-	"github.com/lucmichalski/finance-contrib/anticor.org/models"
+	adm "github.com/lucmichalski/finance-contrib/seekingalpha.com/admin"
+	"github.com/lucmichalski/finance-contrib/seekingalpha.com/crawler"
+	"github.com/lucmichalski/finance-contrib/seekingalpha.com/models"
 	"github.com/qor/admin"
 
 	"github.com/lucmichalski/finance-dataset/pkg/config"
@@ -14,62 +14,64 @@ import (
 )
 
 var Tables = []interface{}{
-	&models.SettingAnticorOrg{},
+	&models.SettingSeekingAlpha{},
 }
 
 var Resources = []interface{}{
-	&models.SettingAnticorOrg{},
+	&models.SettingSeekingAlpha{},
 }
 
-type anticorOrgPlugin string
+type seekingAlphaPlugin string
 
-func (o anticorOrgPlugin) Name() string      { return string(o) }
-func (o anticorOrgPlugin) Section() string   { return `anticor.org` }
-func (o anticorOrgPlugin) Usage() string     { return `` }
-func (o anticorOrgPlugin) ShortDesc() string { return `anticor.org crawler"` }
-func (o anticorOrgPlugin) LongDesc() string  { return o.ShortDesc() }
+func (o seekingAlphaPlugin) Name() string      { return string(o) }
+func (o seekingAlphaPlugin) Section() string   { return `seekingalpha.com` }
+func (o seekingAlphaPlugin) Usage() string     { return `` }
+func (o seekingAlphaPlugin) ShortDesc() string { return `seekingalpha.com crawler"` }
+func (o seekingAlphaPlugin) LongDesc() string  { return o.ShortDesc() }
 
-func (o anticorOrgPlugin) Migrate() []interface{} {
+func (o seekingAlphaPlugin) Migrate() []interface{} {
 	return Tables
 }
 
-func (o anticorOrgPlugin) Resources(Admin *admin.Admin) {
+func (o seekingAlphaPlugin) Resources(Admin *admin.Admin) {
 	adm.ConfigureAdmin(Admin)
 }
 
-func (o anticorOrgPlugin) Crawl(cfg *config.Config) error {
+func (o seekingAlphaPlugin) Crawl(cfg *config.Config) error {
 	return crawler.Extract(cfg)
 }
 
-func (o anticorOrgPlugin) Config() *config.Config {
+func (o seekingAlphaPlugin) Config() *config.Config {
 	cfg := &config.Config{
-		AllowedDomains: []string{"www.anticor.org", "anticor.org"},
+		AllowedDomains: []string{"www.seekingalpha.com", "seekingalpha.com"},
 		URLs: []string{
-			"https://www.anticor.org/post-sitemap.xml",
+			"https://seekingalpha.com/instablog/index.xml",
+			"https://seekingalpha.com/news/index.xml",
+			"https://seekingalpha.com/article/index.xml",
 		},
 		QueueMaxSize:    1000000,
 		ConsumerThreads: 6,
-		IsSitemapIndex:  false,
+		IsSitemapIndex:  true,
 	}
 	return cfg
 }
 
-type anticorOrgCommands struct{}
+type seekingAlphaCommands struct{}
 
-func (t *anticorOrgCommands) Init(ctx context.Context) error {
+func (t *seekingAlphaCommands) Init(ctx context.Context) error {
 	// to set your splash, modify the text in the println statement below, multiline is supported
 	fmt.Println(`
 -----------------------------------------------------------------------------------------
-anticor.org
+seekingalpha.com
 `)
 
 	return nil
 }
 
-func (t *anticorOrgCommands) Registry() map[string]plugins.Plugin {
+func (t *seekingAlphaCommands) Registry() map[string]plugins.Plugin {
 	return map[string]plugins.Plugin{
-		"anticorOrg": anticorOrgPlugin("anticorOrg"), //OP
+		"seekingAlpha": seekingAlphaPlugin("seekingAlpha"), //OP
 	}
 }
 
-var Plugins anticorOrgCommands
+var Plugins seekingAlphaCommands
