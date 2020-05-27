@@ -16,6 +16,12 @@
 - Sitemap: http://devexsitemap.s3.amazonaws.com/sitemaps/routes-sitemap.xml.gz
 - Sitemap: http://devexsitemap.s3.amazonaws.com/sitemaps/countries-sitemap.xml.gz
 
+## Reuters
+- SITEMAP: https://www.reuters.com/sitemap_index.xml
+- SITEMAP: https://www.reuters.com/sitemap_news_index.xml
+- SITEMAP: https://www.reuters.com/sitemap_video_index.xml
+- SITEMAP: https://www.reuters.com/brandfeature/sitemap
+
 ## SeekingAlpha
 - Sitemap: https://seekingalpha.com/sitemap_index.xml
 - Sitemap: https://seekingalpha.com/sitemap_news.xml
