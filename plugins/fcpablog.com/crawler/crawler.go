@@ -1,12 +1,13 @@
 package crawler
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"strings"
-	"context"
 
 	"github.com/k0kubun/pp"
-	// "github.com/nozzle/throttler"
+	"github.com/nozzle/throttler"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/lucmichalski/finance-dataset/pkg/config"
@@ -20,15 +21,24 @@ func Extract(cfg *config.Config) error {
 	client, _ := wordpress.NewClient(cfg.URLs[0], nil)
 	ctx := context.Background()
 
+	// init throttle
+	t := throttler.New(3, 1000000)
+
+	opts := &wordpress.PostListOptions{}
+	// page := -1
 	for {
 
 		// lits of posts
-		opts := &wordpress.PostListOptions{}
-		opts.Offset = 0
-		opts.PerPage = 100
+		// opts.Offset = 0
+		opts.ListOptions.PerPage = 100
+		// opts.ListOptions.Page = 0
+
+		pp.Println("opts:", opts)
 
 		posts, _, err := client.Posts.List(ctx, opts)
 		checkErr(err)
+		opts.ListOptions.Page++
+		// opts.Offset = opts.Offset + 1
 
 		if len(posts) == 0 {
 			break
@@ -45,76 +55,89 @@ func Extract(cfg *config.Config) error {
 				}
 			}
 
-			page := &models.Page{}
-			page.Link = post.Link
-			page.Source = "fcpablog.com"
-			page.Class = "post"
+			go func(post *wordpress.Post) error {
+				defer t.Done(nil)
 
-			if cfg.IsDebug {
-				pp.Println("Title: ", post.Title.Rendered)
-			}
-			page.Title = post.Title.Rendered
+				page := &models.Page{}
+				page.Link = post.Link
+				page.Source = "fcpablog.com"
+				page.Class = "post"
 
-			if cfg.IsDebug {
-				pp.Println("Rendered: ", post.Content.Rendered)
-			}
-			page.Content = post.Content.Rendered
+				if cfg.IsDebug {
+					pp.Println("Title: ", post.Title.Rendered)
+				}
+				page.Title = post.Title.Rendered
 
-			if cfg.IsDebug {
-				pp.Println("Date: ", post.Date.Time)
-			}
-			page.PublishedAt = post.Date.Time
+				if cfg.IsDebug {
+					pp.Println("Rendered: ", post.Content.Rendered)
+				}
+				page.Content = post.Content.Rendered
 
-			a, _, err := client.Users.Get(ctx, post.Author, nil)
-			checkErr(err)
-			if cfg.IsDebug {
-				pp.Println("Author:", a.Name)
-			}
-			page.Authors = a.Name
+				if cfg.IsDebug {
+					pp.Println("Date: ", post.Date.Time)
+				}
+				page.PublishedAt = post.Date.Time
 
-			var cats []string
-			for _, category := range post.Categories {
-				c, _, err := client.Categories.Get(ctx, category, nil)
+				a, _, err := client.Users.Get(ctx, post.Author, nil)
 				checkErr(err)
 				if cfg.IsDebug {
-					pp.Println("Category:", c.Name)
+					pp.Println("Author:", a.Name)
 				}
-				if c.Name != "" {
-					cats = append(cats, c.Name)
-				}
-			}
-			page.Categories = strings.Join(cats, ",")
+				page.Authors = a.Name
 
-			var tags []string
-			for _, tag := range post.Tags {
-				t, _, err := client.Tags.Get(ctx, tag, nil)
-				checkErr(err)
+				var cats []string
+				for _, category := range post.Categories {
+					c, _, err := client.Categories.Get(ctx, category, nil)
+					checkErr(err)
+					if cfg.IsDebug {
+						pp.Println("Category:", c.Name)
+					}
+					if c.Name != "" {
+						cats = append(cats, c.Name)
+					}
+				}
+				page.Categories = strings.Join(cats, ",")
+
+				var tags []string
+				for _, tag := range post.Tags {
+					t, _, err := client.Tags.Get(ctx, tag, nil)
+					checkErr(err)
+					if cfg.IsDebug {
+						pp.Println("Tag:", t.Name)
+					}
+					if t.Name != "" {
+						tags = append(tags, t.Name)
+					}
+				}
+				page.Tags = strings.Join(tags, ",")
+
+				if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
+					return errors.New("not enough attributs for registration into the db")
+				}
+
 				if cfg.IsDebug {
-					pp.Println("Tag:", t.Name)
+					pp.Println("page:", page)
 				}
-				if t.Name != "" {
-					tags = append(tags, t.Name)
+
+				if !cfg.DryMode {
+					if err := cfg.DB.Create(&page).Error; err != nil {
+						log.Warnf("create page (%v) failure, got err %v", page, err)
+						return err
+					}
 				}
-			}
-			page.Tags = strings.Join(tags, ",")
-
-			if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
-				continue
-			}
-
-			if cfg.IsDebug {
-				pp.Println("page:", page)
-			}
-
-			if !cfg.DryMode {
-				if err := cfg.DB.Create(&page).Error; err != nil {
-					log.Warnf("create page (%v) failure, got err %v", page, err)
-					continue
-				}
-			}
+				return nil
+			}(post)
+			t.Throttle()
 		}
-		opts.Offset++
+	}
 
+	// throttler errors iteration
+	if t.Err() != nil {
+		// Loop through the errors to see the details
+		for i, err := range t.Errs() {
+			log.Printf("error #%d: %s", i, err)
+		}
+		log.Fatal(t.Err())
 	}
 
 	return nil

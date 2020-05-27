@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -35,7 +36,7 @@ const (
 
 func Extract(cfg *config.Config) error {
 
-	// publishedAtTime, err := dateparse.ParseAny(publishedAtStr)
+	rand.Seed(time.Now().UnixNano())
 
 	var links []string
 	utils.EnsureDir("./shared/queue/")
@@ -211,7 +212,7 @@ func getArticle(link string, cfg *config.Config) error {
 	page := &models.Page{}
 	page.Link = link
 	page.Source = "lesechos.fr"
-	page.Class = result.Stripes[0].MainContent[0].Data.Type
+	page.Class = "article"
 
 	var authors []string
 	for _, author := range result.Stripes[0].MainContent[0].Data.Authors {
