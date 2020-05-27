@@ -3,6 +3,7 @@ module github.com/lucmichalski/finance-dataset
 go 1.14
 
 require (
+	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/abadojack/whatlanggo v1.0.1
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/dgraph-io/badger v1.6.1
@@ -12,11 +13,13 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/gocolly/colly/v2 v2.0.1
 	github.com/gocolly/twocaptcha v0.0.0-20180302192906-5ade8d29ba53 // indirect
+	github.com/google/go-querystring v1.0.0
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/sessions v1.2.0 // indirect
 	github.com/gosimple/slug v1.9.0 // indirect
 	github.com/jinzhu/gorm v1.9.12
 	github.com/jinzhu/now v1.1.1
+	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
@@ -37,4 +40,5 @@ require (
 	github.com/tebeka/selenium v0.9.9 // indirect
 	github.com/thanhhh/gin-gonic-realip v0.0.0-20180527053022-1a91c06e8abf // indirect
 	github.com/theplant/cldr v0.0.0-20190423050709-9f76f7ce4ee8 // indirect
+	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 )

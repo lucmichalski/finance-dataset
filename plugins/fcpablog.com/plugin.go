@@ -45,11 +45,11 @@ func (o fcpaBlogPlugin) Config() *config.Config {
 	cfg := &config.Config{
 		AllowedDomains: []string{"www.fcpablog.com", "fcpablog.com"},
 		URLs: []string{
-			"https://fcpablog.com/sitemap.xml",
+			"https://fcpablog.com/wp-json/",
 		},
 		QueueMaxSize:    1000000,
-		ConsumerThreads: 1,
-		IsSitemapIndex:  true,
+		ConsumerThreads: 6,
+		IsSitemapIndex:  false,
 	}
 	return cfg
 }

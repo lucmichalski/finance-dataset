@@ -7,7 +7,7 @@ A Go client library for the [Wordpress REST API](https://developer.wordpress.org
 ## Installation
 
 ```bash
-go get github.com/qorpress/go-wordpress
+go get github.com/lucmichalski/finance-dataset/pkg/wordpress
 ```
 
 ## Usage
@@ -21,7 +21,7 @@ import (
   "fmt"
   "net/http"
 
-  "github.com/qorpress/go-wordpress"
+  "github.com/lucmichalski/finance-dataset/pkg/wordpress"
 )
 
 func main() {
@@ -107,7 +107,7 @@ package main
 import (
   "context"
 
-  "github.com/qorpress/go-wordpress"
+  "github.com/lucmichalski/finance-dataset/pkg/wordpress"
 )
 
 func main() {
