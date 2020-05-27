@@ -6,6 +6,7 @@ go 1.14
 
 require (
 	github.com/araddon/dateparse v0.0.0-20200409225146-d820a6159ab1
+	github.com/astaxie/flatmap v0.0.0-20160505145528-c0e84c00d8d5
 	github.com/beevik/etree v1.1.0 // indirect
 	github.com/corpix/uarand v0.1.1
 	github.com/gocolly/colly/v2 v2.0.1

@@ -45,11 +45,11 @@ func (o anticorOrgPlugin) Config() *config.Config {
 	cfg := &config.Config{
 		AllowedDomains: []string{"www.anticor.org", "anticor.org"},
 		URLs: []string{
-			"https://anticor.org/wp-json/",
+			"https://www.anticor.org/sitemap_index.xml",
 		},
 		QueueMaxSize:    1000000,
 		ConsumerThreads: 6,
-		IsSitemapIndex:  false,
+		IsSitemapIndex:  true,
 	}
 	return cfg
 }
