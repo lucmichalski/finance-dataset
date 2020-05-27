@@ -14,11 +14,11 @@ import (
 )
 
 var Tables = []interface{}{
-	&models.SettingDevex{},
+	&models.SettingFcpaBlog{},
 }
 
 var Resources = []interface{}{
-	&models.SettingDevex{},
+	&models.SettingFcpaBlog{},
 }
 
 type fcpaBlogPlugin string

@@ -1,15 +1,12 @@
 package crawler
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/araddon/dateparse"
-	"github.com/corpix/uarand"
-	"github.com/gocolly/colly/v2"
-	"github.com/gocolly/colly/v2/proxy"
-	"github.com/gocolly/colly/v2/queue"
+	// "github.com/corpix/uarand"
 	"github.com/k0kubun/pp"
 	log "github.com/sirupsen/logrus"
 
@@ -23,17 +20,17 @@ func Extract(cfg *config.Config) error {
 
 	// Instantiate default collector
 	c := colly.NewCollector(
-		colly.AllowURLRevisit(),
-		colly.UserAgent(uarand.GetRandom()),
+		// colly.AllowURLRevisit(),
+		colly.UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36"),
 		colly.CacheDir(cfg.CacheDir),
 	)
 
 	// Rotate two socks5 proxies
-	rp, err := proxy.RoundRobinProxySwitcher("http://localhost:8119")
-	if err != nil {
-		log.Fatal(err)
-	}
-	c.SetProxyFunc(rp)
+	// rp, err := proxy.RoundRobinProxySwitcher("http://51.210.37.251:5566")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// c.SetProxyFunc(rp)
 
 	// create a request queue with 1 consumer thread until we solve the multi-threadin of the darknet model
 	q, _ := queue.New(
@@ -42,6 +39,8 @@ func Extract(cfg *config.Config) error {
 			MaxSize: cfg.QueueMaxSize,
 		},
 	)
+
+	c.DisableCookies()
 
 	// Create a callback on the XPath query searching for the URLs
 	c.OnXML("//sitemap/loc", func(e *colly.XMLElement) {
@@ -60,11 +59,6 @@ func Extract(cfg *config.Config) error {
 
 	c.OnHTML(`html`, func(e *colly.HTMLElement) {
 
-		// check if news page
-		if !strings.Contains(e.Request.Ctx.Get("url"), "/news/") {
-			return
-		}
-
 		// check in the databse if exists
 		var pageExists models.Page
 		if !cfg.DryMode {
@@ -77,7 +71,7 @@ func Extract(cfg *config.Config) error {
 		page := &models.Page{}
 		page.Link = e.Request.Ctx.Get("url")
 		page.Source = "fcpablog.com"
-		page.Class = "news"
+		page.Class = "post"
 
 		// categories
 		var categories []string
@@ -89,41 +83,33 @@ func Extract(cfg *config.Config) error {
 		page.Categories = strings.Join(categories, ",")
 
 		// title
-		page.Title = e.ChildText("h1.article-headline")
+		page.Title = e.ChildText("h1.elementor-heading-title")
 
 		// author
-		page.Authors = e.ChildText("a[rel=author]")
+		page.Authors = e.ChildText("span.elementor-post-info__item--type-author")
 
 		// date
-		publishedAtStr := e.ChildText("em.article-byline")
-		publishedAtParts := strings.Split(publishedAtStr, "//")
-		var publishedAt string
-		if len(publishedAtParts) > 1 {
-			publishedAt = strings.TrimSpace(publishedAtParts[1])
-			if cfg.IsDebug {
-				fmt.Println("publishedAt:", publishedAt)
-			}
-			// convert date to time
-
-			publishedAtTime, err := dateparse.ParseAny(publishedAt)
-			if err != nil {
-				log.Fatal(err)
-			}
-			page.PublishedAt = publishedAtTime
-		} else {
-			page.PublishedAt = time.Now()
+		publishedAtStr := e.ChildText("span.elementor-post-info__item--type-date")
+		publishedAtTime, err := dateparse.ParseAny(publishedAtStr)
+		if err != nil {
+			log.Fatal(err)
 		}
+		page.PublishedAt = publishedAtTime
 
 		var tags []string
-		e.ForEach(`div.tags a`, func(_ int, el *colly.HTMLElement) {
-			if el.Attr("data-track-label") != "" {
-				tags = append(tags, el.Attr("data-track-label"))
+		e.ForEach(`a.elementor-post-info__terms-list-item`, func(_ int, el *colly.HTMLElement) {
+			if el.Text != "" {
+				tags = append(tags, el.Text)
 			}
 		})
 		page.Tags = strings.Join(tags, ",")
 
 		// article content
-		page.Content = e.ChildText("div[id=article-content]")
+		content, err := articletext.GetArticleTextFromHtmlNode(e.Node)
+		if err != nil {
+			log.Fatal(err)
+		}
+		page.Content = content
 
 		if cfg.IsDebug {
 			pp.Println("page:", page)

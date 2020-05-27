@@ -27,6 +27,7 @@ type Page struct {
 	Source             string         `gorm:"index:source"`
 	Class              string         `gorm:"index:class"`
 	PageProperties     PageProperties `sql:"type:text"`
+	PageAttributes     []PageAttribute
 }
 
 func (p Page) Validate(db *gorm.DB) {
@@ -78,4 +79,11 @@ func (pageProperties PageProperties) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return json.Marshal(pageProperties)
+}
+
+type PageProperty struct {
+	gorm.Model
+	PageID uint
+	Name   string
+	Value  string
 }
