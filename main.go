@@ -116,6 +116,7 @@ func main() {
 
 	// migrate tables
 	DB.AutoMigrate(&models.Page{})
+        DB.AutoMigrate(&models.PageAttribute{})
 	DB.AutoMigrate(&media_library.MediaLibrary{})
 
 	// load plugins
