@@ -43,3 +43,11 @@
 ## LesEchos.fr
 - Sitemap: https://sitemap.lesechos.fr/sitemap_index.xml
 - Sitemap: https://www.lesechos.fr/sitemap_news.xml
+
+## Wsj.com
+- Sitemap: https://www.wsj.com/sitemaps/web/wsj/en/sitemap_wsj_en_index.xml (archives)
+- Sitemap: https://www.wsj.com/wsjsitemaps/wsj_google_news.xml
+- Sitemap: https://www.wsj.com/live_news_sitemap.xml
+- Sitemap: https://www.wsj.com/sitemap.xml
+- Sitemap: https://www.wsj.com/wsj_graphics_sitemap.xml
+- Sitemap: https://www.wsj.com/sitemaps/web/video/en/sitemap_video_en_index.xml
