@@ -60,7 +60,7 @@ func Extract(cfg *config.Config) error {
 
 				page := &models.Page{}
 				page.Link = post.Link
-				page.Source = "fcpablog.com"
+				page.Source = "anticor.org"
 				page.Class = "post"
 
 				if cfg.IsDebug {

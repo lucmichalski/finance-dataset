@@ -1,4 +1,4 @@
-module github.com/lucmichalski/finance-contrib/fcpablog.com
+module github.com/lucmichalski/finance-contrib/anticor.org
 
 replace github.com/lucmichalski/finance-dataset => ../..
 

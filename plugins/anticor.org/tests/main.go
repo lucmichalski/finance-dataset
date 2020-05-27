@@ -13,7 +13,7 @@ import (
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 
-	"github.com/lucmichalski/finance-contrib/fcpablog.com/crawler"
+	"github.com/lucmichalski/finance-contrib/anticor.org/crawler"
 )
 
 func main() {
@@ -32,9 +32,9 @@ func main() {
 	DB.AutoMigrate(&models.Page{})
 
 	cfg := &config.Config{
-		AllowedDomains: []string{"www.fcpablog.com", "fcpablog.com"},
+		AllowedDomains: []string{"www.anticor.org", "anticor.org"},
 		URLs: []string{
-			"https://fcpablog.com/2020/05/22/anti-graft-reform-lifts-asia-tempered-by-political-risk/",
+			"https://www.anticor.org/2020/05/06/affaire-kohler-anticor-depose-plainte-avec-constitution-de-partie-civile/",
 		},
 		DB:              DB,
 		CacheDir:        "../../../shared/data",

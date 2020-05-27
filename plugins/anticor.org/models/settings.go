@@ -4,7 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type SettingFcpaBlog struct {
+type SettingAnticorOrg struct {
 	gorm.Model
 	Enabled         bool
 	SitemapURL      string

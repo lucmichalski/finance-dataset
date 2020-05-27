@@ -44,6 +44,14 @@
 - Sitemap: https://sitemap.lesechos.fr/sitemap_index.xml
 - Sitemap: https://www.lesechos.fr/sitemap_news.xml
 
+## Anticor.org
+- Sitemap: https://www.anticor.org/sitemap_index.xml
+- Sitemap: https://www.anticor.org/post-sitemap.xml
+- Sitemap: https://www.anticor.org/page-sitemap.xml
+- Sitemap: https://www.anticor.org/factsheet-sitemap.xml
+- Sitemap: https://www.anticor.org/category-sitemap.xml
+- Sitemap: https://www.anticor.org/author-sitemap.xml
+
 ## Wsj.com
 - Sitemap: https://www.wsj.com/sitemaps/web/wsj/en/sitemap_wsj_en_index.xml (archives)
 - Sitemap: https://www.wsj.com/wsjsitemaps/wsj_google_news.xml

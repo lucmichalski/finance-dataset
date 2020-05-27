@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	adm "github.com/lucmichalski/finance-contrib/fcpablog.com/admin"
-	"github.com/lucmichalski/finance-contrib/fcpablog.com/crawler"
-	"github.com/lucmichalski/finance-contrib/fcpablog.com/models"
+	adm "github.com/lucmichalski/finance-contrib/anticor.org/admin"
+	"github.com/lucmichalski/finance-contrib/anticor.org/crawler"
+	"github.com/lucmichalski/finance-contrib/anticor.org/models"
 	"github.com/qor/admin"
 
 	"github.com/lucmichalski/finance-dataset/pkg/config"
@@ -14,38 +14,38 @@ import (
 )
 
 var Tables = []interface{}{
-	&models.SettingFcpaBlog{},
+	&models.SettingAnticorOrg{},
 }
 
 var Resources = []interface{}{
-	&models.SettingFcpaBlog{},
+	&models.SettingAnticorOrg{},
 }
 
-type fcpaBlogPlugin string
+type anticorOrgPlugin string
 
-func (o fcpaBlogPlugin) Name() string      { return string(o) }
-func (o fcpaBlogPlugin) Section() string   { return `fcpablog.com` }
-func (o fcpaBlogPlugin) Usage() string     { return `` }
-func (o fcpaBlogPlugin) ShortDesc() string { return `fcpablog.com crawler"` }
-func (o fcpaBlogPlugin) LongDesc() string  { return o.ShortDesc() }
+func (o anticorOrgPlugin) Name() string      { return string(o) }
+func (o anticorOrgPlugin) Section() string   { return `anticor.org` }
+func (o anticorOrgPlugin) Usage() string     { return `` }
+func (o anticorOrgPlugin) ShortDesc() string { return `anticor.org crawler"` }
+func (o anticorOrgPlugin) LongDesc() string  { return o.ShortDesc() }
 
-func (o fcpaBlogPlugin) Migrate() []interface{} {
+func (o anticorOrgPlugin) Migrate() []interface{} {
 	return Tables
 }
 
-func (o fcpaBlogPlugin) Resources(Admin *admin.Admin) {
+func (o anticorOrgPlugin) Resources(Admin *admin.Admin) {
 	adm.ConfigureAdmin(Admin)
 }
 
-func (o fcpaBlogPlugin) Crawl(cfg *config.Config) error {
+func (o anticorOrgPlugin) Crawl(cfg *config.Config) error {
 	return crawler.Extract(cfg)
 }
 
-func (o fcpaBlogPlugin) Config() *config.Config {
+func (o anticorOrgPlugin) Config() *config.Config {
 	cfg := &config.Config{
-		AllowedDomains: []string{"www.fcpablog.com", "fcpablog.com"},
+		AllowedDomains: []string{"www.anticor.org", "anticor.org"},
 		URLs: []string{
-			"https://fcpablog.com/wp-json/",
+			"https://anticor.org/wp-json/",
 		},
 		QueueMaxSize:    1000000,
 		ConsumerThreads: 6,
@@ -54,22 +54,22 @@ func (o fcpaBlogPlugin) Config() *config.Config {
 	return cfg
 }
 
-type fcpaBlogCommands struct{}
+type anticorOrgCommands struct{}
 
-func (t *fcpaBlogCommands) Init(ctx context.Context) error {
+func (t *anticorOrgCommands) Init(ctx context.Context) error {
 	// to set your splash, modify the text in the println statement below, multiline is supported
 	fmt.Println(`
 -----------------------------------------------------------------------------------------
-fcpaBlog
+anticor.org
 `)
 
 	return nil
 }
 
-func (t *fcpaBlogCommands) Registry() map[string]plugins.Plugin {
+func (t *anticorOrgCommands) Registry() map[string]plugins.Plugin {
 	return map[string]plugins.Plugin{
-		"fcpaBlog": fcpaBlogPlugin("fcpaBlog"), //OP
+		"anticorOrg": anticorOrgPlugin("anticorOrg"), //OP
 	}
 }
 
-var Plugins fcpaBlogCommands
+var Plugins anticorOrgCommands
