@@ -24,8 +24,13 @@ func Logger(geo *geoip2.Reader) gin.HandlerFunc {
 
 		// log after processing
 		status := c.Writer.Status()
-		ip := c.ClientIP()
-		loc := getLocationFromIP(geo, ip)
+
+                if ip := c.ClientIP(); ip != "" {
+                        c.Request.RemoteAddr = ip
+                }
+
+		// ip := c.ClientIP()
+		loc := getLocationFromIP(geo, c.Request.RemoteAddr)
 
 		fields := logrus.Fields{
 			"event":            models.EventHTTPRequest,

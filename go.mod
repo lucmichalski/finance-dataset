@@ -22,6 +22,7 @@ require (
 	github.com/jinzhu/now v1.1.1
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible
+	github.com/karrick/godirwalk v1.15.6 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
 	github.com/oschwald/geoip2-golang v1.4.0
