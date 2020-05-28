@@ -30,10 +30,11 @@ services:
     - TIMEZONE=${TIME_ZONE}
     - SCHEDULE=0 0 0 3 *
     - BACKUP_METHOD=mysqldump
-    - MYSQL_HOST=${FD_MYSQL_HOST}
+    - MYSQL_HOST=mysql
     - MYSQL_DATABASE=${FD_MYSQL_DATABASE}
     - MYSQL_USER=${FD_MYSQL_USER}
     - MYSQL_PASSWORD=${FD_MYSQL_PASSWORD}
+    - MYSQL_PORT=${FD_MYSQL_PORT}
     volumes:
     - ./shared/backup:/backup
     restart: unless-stopped

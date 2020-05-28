@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/abadojack/whatlanggo v1.0.1
+	github.com/aodin/date v0.0.0-20160219192542-c5f6146fc644 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/dgraph-io/badger v1.6.1
 	github.com/disintegration/imaging v1.6.2 // indirect
@@ -38,6 +39,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tebeka/selenium v0.9.9 // indirect
+	github.com/tejasmanohar/timerange-go v1.0.0 // indirect
 	github.com/thanhhh/gin-gonic-realip v0.0.0-20180527053022-1a91c06e8abf // indirect
 	github.com/theplant/cldr v0.0.0-20190423050709-9f76f7ce4ee8 // indirect
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80

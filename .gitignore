@@ -17,3 +17,6 @@
 *.tar.gz
 .env
 *.DS_Store
+shared/queue
+shared/backup
+shared/backup/

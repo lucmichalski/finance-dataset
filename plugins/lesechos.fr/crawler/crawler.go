@@ -215,9 +215,18 @@ func getArticle(link string, cfg *config.Config) error {
 	page.Class = "article"
 
 	var authors []string
+	if len(result.Stripes) == 0 {
+		return errors.New("No stripes")
+	}
+
+	if len(result.Stripes[0].MainContent) == 0 {
+		return errors.New("No MainContent")
+	}
+
 	for _, author := range result.Stripes[0].MainContent[0].Data.Authors {
 		authors = append(authors, author.Signature)
 	}
+
 	page.Authors = strings.Join(authors, ",")
 
 	page.Title = result.Stripes[0].MainContent[0].Data.Title
@@ -263,7 +272,7 @@ func getArticle(link string, cfg *config.Config) error {
 
 	if !cfg.DryMode {
 		if err := cfg.DB.Create(&page).Error; err != nil {
-			log.Fatalf("create page (%v) failure, got err %v", page, err)
+			log.Warnf("create page (%v) failure, got err %v", page, err)
 			return err
 		}
 	}

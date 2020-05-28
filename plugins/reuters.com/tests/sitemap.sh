@@ -1,0 +1,32 @@
+#!/bin/sh
+
+wget -nc https://www.reuters.com/sitemap_20200526-20200527.xml
+wget -nc https://www.reuters.com/sitemap_20200525-20200526.xml
+wget -nc https://www.reuters.com/sitemap_20200524-20200525.xml
+wget -nc https://www.reuters.com/sitemap_20200523-20200524.xml
+wget -nc https://www.reuters.com/sitemap_20200522-20200523.xml
+wget -nc https://www.reuters.com/sitemap_20200521-20200522.xml
+wget -nc https://www.reuters.com/sitemap_20200520-20200521.xml
+wget -nc https://www.reuters.com/sitemap_20200519-20200520.xml
+wget -nc https://www.reuters.com/sitemap_20200518-20200519.xml
+wget -nc https://www.reuters.com/sitemap_20200517-20200518.xml
+wget -nc https://www.reuters.com/sitemap_20200516-20200517.xml
+wget -nc https://www.reuters.com/sitemap_20200515-20200516.xml
+wget -nc https://www.reuters.com/sitemap_20200514-20200515.xml
+wget -nc https://www.reuters.com/sitemap_20200513-20200514.xml
+wget -nc https://www.reuters.com/sitemap_20200512-20200513.xml
+wget -nc https://www.reuters.com/sitemap_20200511-20200512.xml
+wget -nc https://www.reuters.com/sitemap_20200510-20200511.xml
+wget -nc https://www.reuters.com/sitemap_20200509-20200510.xml
+wget -nc https://www.reuters.com/sitemap_20200508-20200509.xml
+wget -nc https://www.reuters.com/sitemap_20200507-20200508.xml
+wget -nc https://www.reuters.com/sitemap_20200506-20200507.xml
+wget -nc https://www.reuters.com/sitemap_20200505-20200506.xml
+wget -nc https://www.reuters.com/sitemap_20200504-20200505.xml
+wget -nc https://www.reuters.com/sitemap_20200503-20200504.xml
+wget -nc https://www.reuters.com/sitemap_20200502-20200503.xml
+wget -nc https://www.reuters.com/sitemap_20200501-20200502.xml
+wget -nc https://www.reuters.com/sitemap_20200430-20200501.xml
+wget -nc https://www.reuters.com/sitemap_20200429-20200430.xml
+wget -nc https://www.reuters.com/sitemap_20200428-20200429.xml
+wget -nc https://www.reuters.com/sitemap_20200427-20200428.xml
