@@ -3,9 +3,11 @@ module github.com/lucmichalski/finance-dataset
 go 1.14
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/abadojack/whatlanggo v1.0.1
 	github.com/aodin/date v0.0.0-20160219192542-c5f6146fc644 // indirect
+	github.com/araddon/dateparse v0.0.0-20200409225146-d820a6159ab1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/dgraph-io/badger v1.6.1
 	github.com/disintegration/imaging v1.6.2 // indirect
@@ -26,6 +28,7 @@ require (
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.2 // indirect
 	github.com/oschwald/geoip2-golang v1.4.0
+	github.com/pkg/errors v0.8.1
 	github.com/qor/admin v0.0.0-20200315024928-877b98a68a6f
 	github.com/qor/assetfs v0.0.0-20170713023933-ff57fdc13a14 // indirect
 	github.com/qor/media v0.0.0-20191022071353-19cf289e17d4 // indirect
@@ -37,6 +40,7 @@ require (
 	github.com/qor/serializable_meta v0.0.0-20180510060738-5fd8542db417 // indirect
 	github.com/qor/session v0.0.0-20170907035918-8206b0adab70 // indirect
 	github.com/qor/validations v0.0.0-20171228122639-f364bca61b46
+	github.com/schollz/pluck v1.1.3
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tebeka/selenium v0.9.9 // indirect

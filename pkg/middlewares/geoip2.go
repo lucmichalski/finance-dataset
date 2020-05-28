@@ -39,7 +39,7 @@ func Logger(geo *geoip2.Reader) gin.HandlerFunc {
 			"query":            c.Request.URL.Query().Encode(),
 			"http_status_code": status,
 			"response_time":    float64(time.Since(start).Nanoseconds()) / 1e6,
-			"ip":               ip,
+			"ip":               c.Request.RemoteAddr,
 			"location":         loc.String(),
 			"continent":        loc.continent,
 			"country":          loc.country,
