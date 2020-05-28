@@ -7,12 +7,13 @@ import (
 
 	"github.com/araddon/dateparse"
 	"github.com/corpix/uarand"
-	"github.com/gocolly/colly/v2"
-	"github.com/gocolly/colly/v2/proxy"
-	"github.com/gocolly/colly/v2/queue"
 	"github.com/k0kubun/pp"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/lucmichalski/finance-dataset/pkg/articletext"
+	"github.com/lucmichalski/finance-dataset/pkg/colly"
+	"github.com/lucmichalski/finance-dataset/pkg/colly/proxy"
+	"github.com/lucmichalski/finance-dataset/pkg/colly/queue"
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 	"github.com/lucmichalski/finance-dataset/pkg/sitemap"
@@ -23,9 +24,10 @@ func Extract(cfg *config.Config) error {
 
 	// Instantiate default collector
 	c := colly.NewCollector(
-		colly.AllowURLRevisit(),
+		//colly.AllowURLRevisit(),
 		colly.UserAgent(uarand.GetRandom()),
 		colly.CacheDir(cfg.CacheDir),
+		colly.AllowedDomains(cfg.AllowedDomains...),
 	)
 
 	// Rotate two socks5 proxies
@@ -55,13 +57,23 @@ func Extract(cfg *config.Config) error {
 
 	c.OnError(func(r *colly.Response, err error) {
 		fmt.Println("error:", err, r.Request.URL, r.StatusCode)
-		q.AddURL(r.Request.URL.String())
+		if r.StatusCode == 429 {
+			q.AddURL(r.Request.URL.String())
+		}
+	})
+
+	c.OnHTML(`a[href]`, func(e *colly.HTMLElement) {
+		fmt.Println("Found link: ", e.Attr("href"))
+		// check if article page
+		if strings.Contains(e.Attr("href"), "/article/") {
+			q.AddURL(e.Attr("href"))
+		}
 	})
 
 	c.OnHTML(`html`, func(e *colly.HTMLElement) {
 
 		// check if news page
-		if !strings.Contains(e.Request.Ctx.Get("url"), "/news/") {
+		if !strings.Contains(e.Request.Ctx.Get("url"), "/article/") {
 			return
 		}
 
@@ -76,12 +88,12 @@ func Extract(cfg *config.Config) error {
 
 		page := &models.Page{}
 		page.Link = e.Request.Ctx.Get("url")
-		page.Source = "devex.com"
-		page.Class = "news"
+		page.Source = "theasset.com"
+		page.Class = "article"
 
 		// categories
 		var categories []string
-		e.ForEach(`li.category a`, func(_ int, el *colly.HTMLElement) {
+		e.ForEach(`div.single-post__header a`, func(_ int, el *colly.HTMLElement) {
 			if el.Text != "" {
 				categories = append(categories, el.Text)
 			}
@@ -89,17 +101,17 @@ func Extract(cfg *config.Config) error {
 		page.Categories = strings.Join(categories, ",")
 
 		// title
-		page.Title = e.ChildText("h1.article-headline")
+		page.Title = e.ChildText("div.single-post__title")
 
 		// author
-		page.Authors = e.ChildText("a[rel=author]")
+		page.Authors = "The Asset"
 
 		// date
-		publishedAtStr := e.ChildText("em.article-byline")
-		publishedAtParts := strings.Split(publishedAtStr, "//")
+		publishedAtStr := e.ChildText("div.single-post__d")
+		publishedAtParts := strings.Split(publishedAtStr, " | ")
 		var publishedAt string
 		if len(publishedAtParts) > 1 {
-			publishedAt = strings.TrimSpace(publishedAtParts[1])
+			publishedAt = strings.TrimSpace(publishedAtParts[0])
 			if cfg.IsDebug {
 				fmt.Println("publishedAt:", publishedAt)
 			}
@@ -114,31 +126,18 @@ func Extract(cfg *config.Config) error {
 			page.PublishedAt = time.Now()
 		}
 
-		var tags []string
-		e.ForEach(`div.tags a`, func(_ int, el *colly.HTMLElement) {
-			if el.Attr("data-track-label") != "" {
-				tags = append(tags, el.Attr("data-track-label"))
-			}
-		})
-		page.Tags = strings.Join(tags, ",")
-
 		// article content
-		page.Content = e.ChildText("div[id=article-content]")
+		content, err := articletext.GetArticleTextFromHtmlNode(e.Node)
+		if err != nil {
+			log.Fatal(err)
+		}
+		page.Content = content
 
 		if cfg.IsDebug {
 			pp.Println("page:", page)
 		}
 
 		// page.PageProperties = append(page.PageProperties, models.PageProperty{Name: "InteriorColor", Value: val})
-
-		// var carDataImage []string
-		// e.ForEach(`div.gallery-controls__thumbnail-image`, func(_ int, el *colly.HTMLElement) {
-		// 	carImage := el.Attr("data-image")
-		// 	if cfg.IsDebug {
-		// 		fmt.Println("carImage:", carImage)
-		// 	}
-		// 	carDataImage = append(carDataImage, carImage)
-		// })
 
 		if page.Link == "" && page.Content == "" && page.PublishedAt.String() == "" {
 			return
@@ -150,7 +149,7 @@ func Extract(cfg *config.Config) error {
 
 		if !cfg.DryMode {
 			if err := cfg.DB.Create(&page).Error; err != nil {
-				log.Fatalf("create page (%v) failure, got err %v", page, err)
+				log.Warnf("create page (%v) failure, got err %v", page, err)
 				return
 			}
 		}
@@ -192,7 +191,7 @@ func Extract(cfg *config.Config) error {
 					}
 					// utils.Shuffle(locs)
 					for _, loc := range locs {
-						if strings.Contains(loc, "/news/") {
+						if strings.Contains(loc, "/article/") {
 							q.AddURL(loc)
 						}
 					}
@@ -204,7 +203,7 @@ func Extract(cfg *config.Config) error {
 					}
 					// utils.Shuffle(locs)
 					for _, loc := range locs {
-						if strings.Contains(loc, "/news/") {
+						if strings.Contains(loc, "/article/") {
 							q.AddURL(loc)
 						}
 					}
@@ -215,6 +214,11 @@ func Extract(cfg *config.Config) error {
 		for _, u := range cfg.URLs {
 			q.AddURL(u)
 		}
+		for i := 0; i < 100; i++ {
+			u := fmt.Sprintf("https://theasset.com/mwapi/article/loop/wealth-management/%d", i)
+			q.AddURL(u)
+		}
+
 	}
 
 	// Consume URLs

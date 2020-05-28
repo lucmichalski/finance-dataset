@@ -4,7 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type SettingDevex struct {
+type SettingTheAsset struct {
 	gorm.Model
 	Enabled         bool
 	SitemapURL      string

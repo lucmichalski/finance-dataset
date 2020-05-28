@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	adm "github.com/lucmichalski/finance-contrib/devex.com/admin"
-	"github.com/lucmichalski/finance-contrib/devex.com/crawler"
-	"github.com/lucmichalski/finance-contrib/devex.com/models"
+	adm "github.com/lucmichalski/finance-contrib/theasset.com/admin"
+	"github.com/lucmichalski/finance-contrib/theasset.com/crawler"
+	"github.com/lucmichalski/finance-contrib/theasset.com/models"
 	"github.com/qor/admin"
 
 	"github.com/lucmichalski/finance-dataset/pkg/config"
@@ -14,76 +14,70 @@ import (
 )
 
 var Tables = []interface{}{
-	&models.SettingDevex{},
+	&models.SettingTheAsset{},
 }
 
 var Resources = []interface{}{
-	&models.SettingDevex{},
+	&models.SettingTheAsset{},
 }
 
-type devexPlugin string
+type theAssetPlugin string
 
-func (o devexPlugin) Name() string      { return string(o) }
-func (o devexPlugin) Section() string   { return `devex.com` }
-func (o devexPlugin) Usage() string     { return `` }
-func (o devexPlugin) ShortDesc() string { return `devex.com crawler"` }
-func (o devexPlugin) LongDesc() string  { return o.ShortDesc() }
+func (o theAssetPlugin) Name() string      { return string(o) }
+func (o theAssetPlugin) Section() string   { return `theasset.com` }
+func (o theAssetPlugin) Usage() string     { return `` }
+func (o theAssetPlugin) ShortDesc() string { return `theasset.com crawler"` }
+func (o theAssetPlugin) LongDesc() string  { return o.ShortDesc() }
 
-func (o devexPlugin) Migrate() []interface{} {
+func (o theAssetPlugin) Migrate() []interface{} {
 	return Tables
 }
 
-func (o devexPlugin) Resources(Admin *admin.Admin) {
+func (o theAssetPlugin) Resources(Admin *admin.Admin) {
 	adm.ConfigureAdmin(Admin)
 }
 
-func (o devexPlugin) Crawl(cfg *config.Config) error {
+func (o theAssetPlugin) Crawl(cfg *config.Config) error {
 	return crawler.Extract(cfg)
 }
 
-func (o devexPlugin) Config() *config.Config {
+func (o theAssetPlugin) Config() *config.Config {
 	cfg := &config.Config{
-		AllowedDomains: []string{"www.devex.com", "devex.com"},
-		URLs: []string{
-			"http://devexsitemap.s3.amazonaws.com/sitemaps/companies-sitemap.xml.gz",
-			"http://devexsitemap.s3.amazonaws.com/sitemaps/procurement-sitemap.xml.gz",
-			"http://devexsitemap.s3.amazonaws.com/sitemaps/news-sitemap.xml.gz",
-			"http://devexsitemap.s3.amazonaws.com/sitemaps/google-news-sitemap.xml.gz",
-			"http://devexsitemap.s3.amazonaws.com/sitemaps/people-sitemap.xml.gz",
-			"http://devexsitemap.s3.amazonaws.com/sitemaps/jobs-sitemap.xml.gz",
-			"http://devexsitemap.s3.amazonaws.com/sitemaps/routes-sitemap.xml.gz",
-			"http://devexsitemap.s3.amazonaws.com/sitemaps/countries-sitemap.xml.gz",
-		},
+		AllowedDomains:  []string{"www.theasset.com", "theasset.com"},
+		URLs:            []string{
+					"https://theasset.com/",
+					"https://theasset.com/section/wealth-management",
+					"https://theasset.com/section/asia-connect",
+					"https://theasset.com/section/treasury-capital-markets",
+					"https://theasset.com/section/europe",
+					"https://theasset.com/section/esg-forum",
+					"https://theasset.com/section/covid-19",
+					"https://theasset.com/section/on-the-move",
+					"https://theasset.com/today-in-china",
+				 },
 		QueueMaxSize:    1000000,
 		ConsumerThreads: 1,
-		IsSitemapIndex:  true,
+		IsSitemapIndex:  false,
 	}
 	return cfg
 }
 
-type devexCommands struct{}
+type theAssetCommands struct{}
 
-func (t *devexCommands) Init(ctx context.Context) error {
+func (t *theAssetCommands) Init(ctx context.Context) error {
 	// to set your splash, modify the text in the println statement below, multiline is supported
 	fmt.Println(`
 -----------------------------------------------------------------------------------------
-'########::'########:'##::::'##:'########:'##::::'##:::::::'######:::'#######::'##::::'##:
- ##.... ##: ##.....:: ##:::: ##: ##.....::. ##::'##:::::::'##... ##:'##.... ##: ###::'###:
- ##:::: ##: ##::::::: ##:::: ##: ##::::::::. ##'##:::::::: ##:::..:: ##:::: ##: ####'####:
- ##:::: ##: ######::: ##:::: ##: ######:::::. ###::::::::: ##::::::: ##:::: ##: ## ### ##:
- ##:::: ##: ##...::::. ##:: ##:: ##...:::::: ## ##:::::::: ##::::::: ##:::: ##: ##. #: ##:
- ##:::: ##: ##::::::::. ## ##::: ##:::::::: ##:. ##::'###: ##::: ##: ##:::: ##: ##:.:: ##:
- ########:: ########:::. ###:::: ########: ##:::. ##: ###:. ######::. #######:: ##:::: ##:
-........:::........:::::...:::::........::..:::::..::...:::......::::.......:::..:::::..::
+TheAsset
 `)
 
 	return nil
 }
 
-func (t *devexCommands) Registry() map[string]plugins.Plugin {
+func (t *theAssetCommands) Registry() map[string]plugins.Plugin {
 	return map[string]plugins.Plugin{
-		"devex": devexPlugin("devex"), //OP
+		"theAsset": theAssetPlugin("theAsset"), //OP
 	}
 }
 
-var Plugins devexCommands
+var Plugins theAssetCommands

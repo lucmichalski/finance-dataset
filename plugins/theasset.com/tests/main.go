@@ -13,7 +13,7 @@ import (
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 
-	"github.com/lucmichalski/finance-contrib/devex.com/crawler"
+	"github.com/lucmichalski/finance-contrib/theasset.com/crawler"
 )
 
 func main() {
@@ -32,9 +32,9 @@ func main() {
 	DB.AutoMigrate(&models.Page{})
 
 	cfg := &config.Config{
-		AllowedDomains: []string{"www.devex.com", "devex.com"},
+		AllowedDomains: []string{"www.theasset.com", "theasset.com"},
 		URLs: []string{
-			"https://www.devex.com/news/exclusive-state-department-makes-bid-for-us-global-pandemic-response-powers-97315",
+			"https://theasset.com/article/40663/from-ai-to-l-c-trade-finance-goes-digital",
 		},
 		DB:              DB,
 		CacheDir:        "../../../shared/data",

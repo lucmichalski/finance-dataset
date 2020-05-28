@@ -41,6 +41,7 @@ plugin:
 
 ## plugins			:	Build all qorpress plugins
 plugins:
+	GOARCH=amd64 PLUGIN=theasset.com make plugin
 	GOARCH=amd64 PLUGIN=reuters.com make plugin
 	GOARCH=amd64 PLUGIN=anticor.org make plugin
 	GOARCH=amd64 PLUGIN=fcpablog.com make plugin
