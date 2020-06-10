@@ -14,7 +14,7 @@ import (
 func main() {
 	t := throttler.New(50, 100000000)
 
-	start := time.Date(2010, time.January, 1, 0, 0, 0, 0, time.UTC)
+	start := time.Date(1991, time.January, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Now() // start.AddDate(, 0, 0)
 	for d := start; d.After(end) == false; d = d.AddDate(0, 0, 1) {
 		startDate := d.AddDate(0, 0, -1)

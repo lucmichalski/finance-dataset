@@ -9,6 +9,8 @@ services:
     - 3311:3306
     volumes:
     - db-data:/var/lib/mysql
+    - ${PWD}/shared/export/:/var/lib/mysql/export/
+    - ./.config/mysql/finance.cnf:/etc/mysql/conf.d/my.cnf
     networks:
     - internal
     environment:

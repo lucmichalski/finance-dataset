@@ -1,18 +1,23 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"plugin"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	slugger "github.com/gosimple/slug"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/k0kubun/pp"
+	"github.com/nozzle/throttler"
 	"github.com/oschwald/geoip2-golang"
 	"github.com/qor/admin"
 	"github.com/qor/assetfs"
@@ -35,6 +40,7 @@ var (
 	isVerbose    bool
 	isAdmin      bool
 	isCrawl      bool
+	isDump       bool
 	isDataset    bool
 	isTruncate   bool
 	isClean      bool
@@ -43,6 +49,7 @@ var (
 	isNoCache    bool
 	isTor        bool
 	isExtract    bool
+	isAleph      bool
 	parallelJobs int
 	torAddress   string
 	geoIpFile    string
@@ -68,6 +75,8 @@ func main() {
 		defaultPlugins = append(defaultPlugins, p)
 	}
 
+	pflag.BoolVarP(&isAleph, "aleph", "", false, "dump pages/articles into stuctured files for alpeh data.")
+	pflag.BoolVarP(&isDump, "dump", "", false, "dump pages/articles into csv file.")
 	pflag.BoolVarP(&isDryMode, "dry-mode", "", false, "do not insert data into database tables.")
 	pflag.BoolVarP(&isCatalog, "catalog", "", false, "import datasets/catalogs.")
 	pflag.StringVarP(&pluginDir, "plugin-dir", "", "./release", "plugins directory.")
@@ -116,7 +125,7 @@ func main() {
 
 	// migrate tables
 	DB.AutoMigrate(&models.Page{})
-        DB.AutoMigrate(&models.PageAttribute{})
+	DB.AutoMigrate(&models.PageAttribute{})
 	DB.AutoMigrate(&media_library.MediaLibrary{})
 
 	// load plugins
@@ -180,6 +189,94 @@ func main() {
 		}
 	}
 
+	if isAleph {
+
+		const articleTemplate = `-- title: {{ .Title }}
+-- link: {{ .Link }}
+-- date: {{ .PublishedAt }}
+-- categories: {{ .Categories }}
+-- tags: {{ .Tags }}
+-- authors: {{ .Authors }}
+-- source: {{ .Source }}
+-- content:
+{{ .Content }}`
+
+		t := throttler.New(12, 4000000)
+
+		var articles []*models.Page
+		DB.Find(&articles)
+		for _, article := range articles {
+
+			go func(a *models.Page) error {
+				// Let Throttler know when the goroutine completes
+				// so it can dispatch another worker
+				defer t.Done(nil)
+
+				prefixPath := filepath.Join("/mnt", "nasha", "lucmichalski", "finance-dataset")
+
+				year := a.PublishedAt.Year()   // type int
+				month := a.PublishedAt.Month() // type time.Month
+				day := a.PublishedAt.Day()     // type int
+
+				timeline := fmt.Sprintf("%d/%d/%d", year, int(month), day)
+
+				slugTitle := slugger.Make(a.Title)
+
+				if len(slugTitle) > 255 {
+					slugTitle = slugTitle[:255]
+				}
+
+				var outputPath bytes.Buffer
+				tpl, err := template.New("article").Parse(articleTemplate)
+				if err != nil {
+					return err
+					log.Fatalln("could not read template, ", err)
+				}
+				if err := tpl.Execute(&outputPath, &a); err != nil {
+					return err
+					log.Fatalln("processing template error, ", err)
+				}
+
+				prefixPath = filepath.Join(prefixPath, a.Source, timeline, a.Class)
+				pp.Println("prefixPath:", prefixPath)
+				os.MkdirAll(prefixPath, 0755)
+				destinationFile := filepath.Join(prefixPath, slugTitle)
+				pp.Println("destinationFile:", destinationFile)
+
+				err = ioutil.WriteFile(destinationFile, outputPath.Bytes(), 0644)
+				if err != nil {
+					return err
+					log.Fatalln("creating file error, ", err)
+				}
+				return nil
+			}(article)
+
+			t.Throttle()
+		}
+
+		// throttler errors iteration
+		if t.Err() != nil {
+			// Loop through the errors to see the details
+			for i, err := range t.Errs() {
+				log.Printf("error #%d: %s", i, err)
+			}
+			log.Fatal(t.Err())
+		}
+
+	}
+
+	if isDump {
+		query := `SELECT id,link,title,content,categories,tags,authors,language,published_at,source,class
+                                INTO OUTFILE 'export/articles.csv' FIELDS TERMINATED BY '\t' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n'
+                                FROM pages`
+		fmt.Println(query)
+		err := DB.Exec(query).Error
+		if err != nil {
+			log.Fatal(err)
+		}
+		os.Exit(1)
+	}
+
 	if isExtract {
 		fmt.Print("extracting...\n")
 		for _, cmd := range ptPlugins.Commands {
@@ -227,10 +324,10 @@ func main() {
 		pages := Admin.AddResource(&models.Page{}, &admin.Config{Menu: []string{"Crawl Management"}})
 		pages.IndexAttrs("ID", "Authors", "Link", "Title")
 
-                pages.Meta(&admin.Meta{
-                        Name: "Content",
-                        Type: "rich_editor",
-                })
+		pages.Meta(&admin.Meta{
+			Name: "Content",
+			Type: "rich_editor",
+		})
 
 		pages.Filter(&admin.Filter{
 			Name: "Authors",

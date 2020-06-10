@@ -1,0 +1,14 @@
+---
+version: "3.7"
+services:
+  
+   govisor:
+     image: govisor:latest
+     build: .
+     ports:
+     - 8321:8321
+     volumes:
+     - ./config:/opt/config
+     - ./logs:/opt/logs
+     command: > 
+       sh -c "govisord -addr http://0.0.0.0:8321 -name finance -dir /opt/config/ -logfile /opt/logs/finance.log"

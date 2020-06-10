@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/araddon/dateparse"
-	// "github.com/corpix/uarand"
 	"github.com/k0kubun/pp"
 	log "github.com/sirupsen/logrus"
 
@@ -32,14 +31,12 @@ func Extract(cfg *config.Config) error {
 		colly.CacheDir(cfg.CacheDir),
 	)
 
-	
 	// Rotate two socks5 proxies
 	rp, err := proxy.RoundRobinProxySwitcher("socks5://localhost:1080")
 	if err != nil {
 		log.Fatal(err)
 	}
 	c.SetProxyFunc(rp)
-	
 
 	// create a request queue with 1 consumer thread until we solve the multi-threadin of the darknet model
 	q, _ := queue.New(
@@ -164,9 +161,14 @@ func Extract(cfg *config.Config) error {
 
 	// Before making a request print "Visiting ..."
 	c.OnRequest(func(r *colly.Request) {
-		//if cfg.IsDebug {
 		fmt.Println("Visiting", r.URL.String())
-		//}
+		var pageExists models.Page
+		if !cfg.DryMode {
+			if !cfg.DB.Where("link = ?", r.URL.String()).First(&pageExists).RecordNotFound() {
+				fmt.Printf("skipping url=%s as already exists\n", r.URL.String())
+				return
+			}
+		}
 		r.Ctx.Put("url", r.URL.String())
 	})
 
@@ -247,7 +249,7 @@ func Extract(cfg *config.Config) error {
 			}
 
 			start := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
-			end := time.Now() // start.AddDate(, 0, 0)
+			end := time.Now()
 			for d := start; d.After(end) == false; d = d.AddDate(0, 0, 1) {
 				startDate := d.AddDate(0, 0, -1)
 				u := fmt.Sprintf("https://www.reuters.com/sitemap_%s-%s.xml", startDate.Format("20060102"), d.Format("20060102"))
