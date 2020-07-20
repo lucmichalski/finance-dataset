@@ -15,7 +15,6 @@ require (
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/sessions v1.2.0 // indirect
 	github.com/gosimple/slug v1.9.0 // indirect
-	github.com/h2non/filetype v1.0.12 // indirect
 	github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7 // indirect
 	github.com/jinzhu/gorm v1.9.12
 	github.com/k0kubun/pp v3.0.1+incompatible

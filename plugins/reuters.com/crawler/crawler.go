@@ -17,6 +17,7 @@ import (
 	"github.com/lucmichalski/finance-dataset/pkg/colly/queue"
 	"github.com/lucmichalski/finance-dataset/pkg/config"
 	ccsv "github.com/lucmichalski/finance-dataset/pkg/csv"
+	"github.com/lucmichalski/finance-dataset/pkg/docker"
 	"github.com/lucmichalski/finance-dataset/pkg/models"
 	"github.com/lucmichalski/finance-dataset/pkg/sitemap"
 	"github.com/lucmichalski/finance-dataset/pkg/utils"
@@ -58,6 +59,9 @@ func Extract(cfg *config.Config) error {
 
 	c.OnError(func(r *colly.Response, err error) {
 		fmt.Println("error:", err, r.Request.URL, r.StatusCode)
+		if r.StatusCode == 404 {
+			docker.Restart("cars-protonvpn")
+		}
 		// fmt.Println("Body", string(r.Body))
 		// os.Exit(1)
 		// q.AddURL(r.Request.URL.String())

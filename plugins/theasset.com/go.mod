@@ -20,3 +20,5 @@ require (
 	github.com/tsak/concurrent-csv-writer v0.0.0-20200206204244-84054e222625 // indirect
 	gopkg.in/neurosnap/sentences.v1 v1.0.6 // indirect
 )
+
+replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.6.0
